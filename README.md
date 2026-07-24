@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MiddleMarket
 
-## Getting Started
+A mediated marketplace MVP: buyers post requests for products or services, sellers make offers, and the marketplace admin reviews every offer's price (approving, adjusting, or rejecting) before the buyer can accept. Accepting an offer creates an order the admin tracks through fulfillment.
 
-First, run the development server:
+## Stack
+
+- Next.js 14 (App Router, TypeScript, Tailwind CSS)
+- PostgreSQL with Prisma ORM
+- JWT session cookies (bcrypt-hashed passwords)
+
+## Roles & Flow
+
+1. **Buyer** signs up, posts a request (title, description, product/service, optional budget).
+2. **Seller** signs up, browses open requests, submits an offer (price + pitch).
+3. **Admin** reviews pending offers: approve (optionally with an adjusted price and note) or reject.
+4. **Buyer** sees only approved offers and accepts one → an order is created and the request is marked matched.
+5. **Admin** updates order status: pending → in progress → delivered → completed (or cancelled).
+
+## Local setup
 
 ```bash
+# 1. Start Postgres (e.g. with Docker)
+docker run -d --name marketplace-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=marketplace -p 5432:5432 postgres:16
+
+# 2. Configure env
+cp .env.example .env
+
+# 3. Install, migrate, seed admin
+npm install
+npx prisma db push
+npx tsx prisma/seed.ts   # creates admin@middlemarket.local / admin123
+
+# 4. Run
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Log in as the admin at `/login` with `admin@middlemarket.local` / `admin123` (change via `ADMIN_EMAIL`/`ADMIN_PASSWORD`).
