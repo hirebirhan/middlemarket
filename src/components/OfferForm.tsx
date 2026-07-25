@@ -2,71 +2,121 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, X } from "lucide-react";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
-export default function OfferForm({ requestId }: { requestId: string }) {
+export default function OfferForm({
+  requestId,
+  budget,
+  label = "Make an offer",
+}: {
+  requestId: string;
+  budget?: string | null;
+  /** Lets the seller page say "Offer again" after a rejection. */
+  label?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="mt-3 bg-indigo-600 text-white text-sm rounded px-3 py-1.5 hover:bg-indigo-700"
-      >
-        Make an offer
-      </button>
-    );
-  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
     const form = new FormData(e.currentTarget);
-    const res = await fetch(`/api/requests/${requestId}/offers`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        price: Number(form.get("price")),
-        message: String(form.get("message")),
-      }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error || "Something went wrong");
-      return;
+    try {
+      const res = await fetch(`/api/requests/${requestId}/offers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          price: Number(form.get("price")),
+          message: String(form.get("message")),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Could not submit this offer.");
+        return;
+      }
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError("Could not reach the server.");
+    } finally {
+      setLoading(false);
     }
-    router.refresh();
+  }
+
+  if (!open) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-4"
+        onClick={() => setOpen(true)}
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        {label}
+      </Button>
+    );
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-3 space-y-2">
-      <input
-        name="price"
-        type="number"
-        min="0.01"
-        step="0.01"
-        required
-        placeholder="Your price in $"
-        className="w-full border rounded px-3 py-2 text-sm"
-      />
-      <textarea
-        name="message"
-        required
-        rows={2}
-        placeholder="Your pitch: what you offer, timeline, quality..."
-        className="w-full border rounded px-3 py-2 text-sm"
-      />
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      <button
-        disabled={loading}
-        className="bg-indigo-600 text-white text-sm rounded px-3 py-1.5 hover:bg-indigo-700 disabled:opacity-50"
-      >
-        {loading ? "Submitting..." : "Submit offer"}
-      </button>
-    </form>
+    <div className="mt-4 rounded-lg border border-border bg-muted/40 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h4 className="text-sm font-semibold">Your offer</h4>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          aria-label="Close offer form"
+          onClick={() => setOpen(false)}
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </div>
+      <form onSubmit={onSubmit} className="space-y-3">
+        <Field
+          label="Your price"
+          hint={
+            budget
+              ? `The buyer budgeted $${budget}.`
+              : "The buyer did not set a budget."
+          }
+        >
+          <Input
+            name="price"
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputMode="decimal"
+            required
+            placeholder="0.00"
+          />
+        </Field>
+        <Field label="Your pitch">
+          <Textarea
+            name="message"
+            required
+            rows={3}
+            placeholder="What you are offering, timeline, quality, what's included…"
+          />
+        </Field>
+        {error && <Alert variant="danger">{error}</Alert>}
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={loading}>
+            {loading ? "Submitting…" : "Submit offer"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Reviewed before the buyer sees it.
+          </p>
+        </div>
+      </form>
+    </div>
   );
 }

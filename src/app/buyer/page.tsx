@@ -1,9 +1,15 @@
 import { redirect } from "next/navigation";
+import { Inbox, Clock, Package } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { formatMoney } from "@/lib/utils";
 import NewRequestForm from "@/components/NewRequestForm";
 import AcceptOfferButton from "@/components/AcceptOfferButton";
 import StatusBadge from "@/components/StatusBadge";
+import { StatGrid } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
+import { RecordList, RecordRow, RecordCell } from "@/components/ui/record-list";
 
 export const dynamic = "force-dynamic";
 
@@ -18,109 +24,162 @@ export default async function BuyerPage() {
       offers: {
         where: { status: { in: ["APPROVED", "ACCEPTED"] } },
         include: { seller: true, order: true },
+        orderBy: { createdAt: "asc" },
       },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  const activeOrders = requests
-    .flatMap((r) => r.offers)
-    .filter((o) => o.order && o.order.status !== "COMPLETED" && o.order.status !== "CANCELLED").length;
+  const allOffers = requests.flatMap((r) => r.offers);
+  const awaitingDecision = allOffers.filter((o) => o.status === "APPROVED");
+  const activeOrders = allOffers.filter(
+    (o) => o.order && o.order.status !== "COMPLETED" && o.order.status !== "CANCELLED"
+  );
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Welcome back, {user.name.split(" ")[0]} 👋</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Post what you need and let sellers compete — we review every price for you.
-        </p>
-      </div>
+    <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
+      <aside className="space-y-6">
+        <div>
+          <h1 className="text-title font-semibold">{user.name.split(" ")[0]}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Buyer dashboard</p>
+        </div>
+        <StatGrid
+          stats={[
+            { label: "Requests", value: requests.length, icon: Inbox, href: "#requests" },
+            {
+              label: "To decide",
+              value: awaitingDecision.length,
+              icon: Clock,
+              href: "#requests",
+              tone: awaitingDecision.length ? "warning" : "neutral",
+            },
+            {
+              label: "Active orders",
+              value: activeOrders.length,
+              icon: Package,
+              href: "#requests",
+              tone: activeOrders.length ? "success" : "neutral",
+            },
+          ]}
+        />
+        <NewRequestForm />
+      </aside>
 
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          ["My requests", requests.length],
-          ["Offers to consider", requests.flatMap((r) => r.offers).filter((o) => o.status === "APPROVED").length],
-          ["Active orders", activeOrders],
-        ].map(([label, count]) => (
-          <div key={label} className="bg-white border rounded-xl p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">{label}</p>
-            <p className="text-2xl font-bold mt-1">{count}</p>
-          </div>
-        ))}
-      </div>
+      <section id="requests" className="min-w-0 scroll-mt-20">
+        <SectionHeader
+          title="My requests"
+          description="You only see offers our team has already reviewed."
+        />
 
-      <NewRequestForm />
+        {requests.length === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            title="No requests yet"
+            description="Post what you need and sellers will start competing for it."
+          />
+        ) : (
+          <div className="space-y-6">
+            {requests.map((request) => {
+              const budget = formatMoney(request.budget);
+              return (
+                <article
+                  key={request.id}
+                  className="overflow-hidden rounded-card border border-border"
+                >
+                  <div className="flex items-start justify-between gap-4 bg-card p-5">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold">{request.title}</h3>
+                      <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+                        {request.description}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        {budget && <span>Budget {budget}</span>}
+                        <time dateTime={request.createdAt.toISOString()}>
+                          {request.createdAt.toLocaleDateString()}
+                        </time>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <StatusBadge value={request.type} />
+                      <StatusBadge value={request.status} />
+                    </div>
+                  </div>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-3">My requests</h2>
-        {requests.length === 0 && (
-          <div className="bg-white border border-dashed rounded-xl p-10 text-center text-slate-400">
-            <p className="text-3xl mb-2">🛒</p>
-            <p className="font-medium text-slate-500">No requests yet</p>
-            <p className="text-sm">Post your first request above and sellers will start making offers.</p>
+                  {request.offers.length === 0 ? (
+                    <p className="border-t border-border px-5 py-4 text-sm text-muted-foreground">
+                      {request.status === "OPEN"
+                        ? "No reviewed offers yet. We'll show them here once our team has checked the price."
+                        : "This request is closed."}
+                    </p>
+                  ) : (
+                    <RecordList
+                      className="rounded-none border-x-0 border-b-0"
+                      template="1fr auto minmax(9rem, auto)"
+                      columns={[
+                        { label: "Seller" },
+                        { label: "Price", align: "right" },
+                        { label: "Action", align: "right" },
+                      ]}
+                    >
+                      {request.offers.map((offer) => {
+                        const finalPrice = formatMoney(offer.adminPrice ?? offer.price);
+                        const wasAdjusted = offer.adminPrice !== null;
+                        return (
+                          <RecordRow key={offer.id}>
+                            <RecordCell>
+                              <p className="font-medium">{offer.seller.name}</p>
+                              <p className="mt-0.5 max-w-prose text-xs text-muted-foreground">
+                                {offer.message}
+                              </p>
+                              {offer.adminNote && (
+                                <p className="mt-1.5 text-xs text-muted-foreground">
+                                  <span className="font-medium text-foreground">
+                                    Marketplace note:
+                                  </span>{" "}
+                                  {offer.adminNote}
+                                </p>
+                              )}
+                              {offer.order && (
+                                <span className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  Order
+                                  <StatusBadge value={offer.order.status} />
+                                </span>
+                              )}
+                            </RecordCell>
+
+                            <RecordCell label="Price" align="right">
+                              <p className="font-semibold tabular-nums">{finalPrice}</p>
+                              {wasAdjusted && (
+                                <p className="text-xs tabular-nums text-muted-foreground">
+                                  <span className="line-through">
+                                    {formatMoney(offer.price)}
+                                  </span>{" "}
+                                  asked
+                                </p>
+                              )}
+                            </RecordCell>
+
+                            <RecordCell label="Action" align="right">
+                              {offer.status === "APPROVED" ? (
+                                <AcceptOfferButton
+                                  offerId={offer.id}
+                                  price={finalPrice ?? ""}
+                                />
+                              ) : (
+                                <StatusBadge value={offer.status} />
+                              )}
+                            </RecordCell>
+                          </RecordRow>
+                        );
+                      })}
+                    </RecordList>
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
-        <div className="space-y-4">
-          {requests.map((r) => (
-            <div key={r.id} className="bg-white border rounded-xl p-5 hover:shadow-sm transition">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-semibold text-base">{r.title}</h3>
-                  <p className="text-sm text-slate-600 mt-1">{r.description}</p>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <StatusBadge value={r.type} />
-                  <StatusBadge value={r.status} />
-                </div>
-              </div>
-              <div className="flex gap-4 text-sm text-slate-500 mt-2">
-                {r.budget && <span>💰 Budget: ${r.budget.toString()}</span>}
-                <span>📅 {r.createdAt.toLocaleDateString()}</span>
-              </div>
-              {r.offers.length > 0 && (
-                <div className="mt-4 border-t pt-4 space-y-3">
-                  <p className="text-sm font-semibold text-slate-700">
-                    ✅ Reviewed offers ({r.offers.length})
-                  </p>
-                  {r.offers.map((o) => (
-                    <div
-                      key={o.id}
-                      className="flex items-start justify-between gap-4 text-sm bg-slate-50 rounded-lg p-4"
-                    >
-                      <div>
-                        <p>
-                          <span className="font-semibold">{o.seller.name}</span>{" "}
-                          <span className="font-bold text-indigo-700">
-                            ${(o.adminPrice ?? o.price).toString()}
-                          </span>
-                          {o.adminPrice && (
-                            <span className="text-slate-400 line-through ml-2">
-                              ${o.price.toString()}
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-slate-600 mt-1">{o.message}</p>
-                        {o.adminNote && (
-                          <p className="text-indigo-600 text-xs mt-1">
-                            🏛 Marketplace note: {o.adminNote}
-                          </p>
-                        )}
-                        {o.order && (
-                          <div className="mt-2 flex items-center gap-2">
-                            <span className="text-xs text-slate-500">Order status:</span>
-                            <StatusBadge value={o.order.status} />
-                          </div>
-                        )}
-                      </div>
-                      {o.status === "APPROVED" && <AcceptOfferButton offerId={o.id} />}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

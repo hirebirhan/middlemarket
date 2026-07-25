@@ -3,11 +3,39 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Field, FieldSet } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Segmented } from "@/components/ui/segmented";
+
+const ROLES = [
+  { value: "BUYER", label: "Buy" },
+  { value: "SELLER", label: "Sell" },
+] as const;
+
+type Role = (typeof ROLES)[number]["value"];
+
+const ROLE_HINT: Record<Role, string> = {
+  BUYER: "Post what you need and let sellers compete for it.",
+  SELLER: "Browse buyer requests and bid with your best price.",
+};
 
 export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const params = useSearchParams();
-  const [role, setRole] = useState(params.get("role") === "SELLER" ? "SELLER" : "BUYER");
+  const isRegister = mode === "register";
+
+  const [role, setRole] = useState<Role>(
+    params.get("role") === "SELLER" ? "SELLER" : "BUYER"
+  );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,95 +43,137 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     const form = new FormData(e.currentTarget);
     const body: Record<string, string> = {
       email: String(form.get("email")),
       password: String(form.get("password")),
     };
-    if (mode === "register") {
+    if (isRegister) {
       body.name = String(form.get("name"));
       body.role = role;
     }
-    const res = await fetch(`/api/auth/${mode}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error || "Something went wrong");
-      return;
+
+    try {
+      const res = await fetch(`/api/auth/${mode}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Something went wrong. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      const user = await res.json();
+      router.push(
+        user.role === "ADMIN"
+          ? "/admin"
+          : user.role === "SELLER"
+            ? "/seller"
+            : "/buyer"
+      );
+      router.refresh();
+    } catch {
+      setError("Could not reach the server. Check your connection.");
+      setLoading(false);
     }
-    const user = await res.json();
-    router.push(user.role === "ADMIN" ? "/admin" : user.role === "SELLER" ? "/seller" : "/buyer");
-    router.refresh();
   }
 
   return (
-    <div className="max-w-sm mx-auto bg-white border rounded-lg p-6">
-      <h1 className="text-xl font-semibold mb-4">
-        {mode === "login" ? "Log in" : "Create your account"}
-      </h1>
-      <form onSubmit={onSubmit} className="space-y-3">
-        {mode === "register" && (
-          <>
-            <input
-              name="name"
-              required
-              placeholder="Full name"
-              className="w-full border rounded px-3 py-2"
-            />
-            <div className="flex gap-2">
-              {(["BUYER", "SELLER"] as const).map((r) => (
-                <button
-                  type="button"
-                  key={r}
-                  onClick={() => setRole(r)}
-                  className={`flex-1 border rounded px-3 py-2 text-sm ${
-                    role === r ? "bg-indigo-600 text-white border-indigo-600" : "bg-white"
-                  }`}
-                >
-                  {r === "BUYER" ? "I'm buying" : "I'm selling"}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-        <input
-          name="email"
-          type="email"
-          required
-          placeholder="Email"
-          className="w-full border rounded px-3 py-2"
-        />
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={6}
-          placeholder="Password"
-          className="w-full border rounded px-3 py-2"
-        />
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button
-          disabled={loading}
-          className="w-full bg-indigo-600 text-white rounded py-2 hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {loading ? "Please wait..." : mode === "login" ? "Log in" : "Sign up"}
-        </button>
-      </form>
-      <p className="text-sm text-slate-500 mt-4">
-        {mode === "login" ? (
-          <>
-            No account? <Link href="/register" className="text-indigo-600">Sign up</Link>
-          </>
-        ) : (
-          <>
-            Have an account? <Link href="/login" className="text-indigo-600">Log in</Link>
-          </>
-        )}
-      </p>
+    <div className="mx-auto flex w-full max-w-md flex-col justify-center py-10 sm:min-h-[70vh] sm:py-16">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-heading">
+            {isRegister ? "Create your account" : "Welcome back"}
+          </CardTitle>
+          <CardDescription>
+            {isRegister
+              ? "Every price on MiddleMarket is reviewed before it reaches a buyer."
+              : "Log in to pick up where you left off."}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-4" noValidate={false}>
+            {/* The role decision shapes the whole account, so it leads the
+                form rather than sitting buried between name and email. */}
+            {isRegister && (
+              <FieldSet label="I want to" hint={ROLE_HINT[role]}>
+                <Segmented
+                  label="Account type"
+                  value={role}
+                  onChange={setRole}
+                  options={ROLES}
+                />
+              </FieldSet>
+            )}
+
+            {isRegister && (
+              <Field label="Full name">
+                <Input
+                  name="name"
+                  required
+                  autoComplete="name"
+                  placeholder="Ada Lovelace"
+                />
+              </Field>
+            )}
+
+            <Field label="Email">
+              <Input
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="you@example.com"
+              />
+            </Field>
+
+            <Field
+              label="Password"
+              hint={isRegister ? "At least 6 characters." : undefined}
+            >
+              <Input
+                name="password"
+                type="password"
+                required
+                minLength={6}
+                autoComplete={isRegister ? "new-password" : "current-password"}
+                placeholder="••••••••"
+              />
+            </Field>
+
+            {error && <Alert variant="danger">{error}</Alert>}
+
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading}
+              className="w-full"
+            >
+              {loading
+                ? "Please wait…"
+                : isRegister
+                  ? `Create ${role === "SELLER" ? "seller" : "buyer"} account`
+                  : "Log in"}
+            </Button>
+          </form>
+
+          <p className="text-center text-sm text-muted-foreground">
+            {isRegister ? "Already have an account? " : "New to MiddleMarket? "}
+            <Link
+              href={isRegister ? "/login" : "/register"}
+              className="font-medium text-foreground underline underline-offset-4 hover:no-underline"
+            >
+              {isRegister ? "Log in" : "Create an account"}
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

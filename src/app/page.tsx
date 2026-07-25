@@ -1,146 +1,296 @@
 import Link from "next/link";
-
-const CATEGORIES = [
-  { icon: "📱", name: "Electronics" },
-  { icon: "🛠️", name: "Home services" },
-  { icon: "🚗", name: "Vehicles & parts" },
-  { icon: "🎨", name: "Design & creative" },
-  { icon: "📦", name: "Wholesale goods" },
-  { icon: "💻", name: "Tech & IT services" },
-  { icon: "🏠", name: "Real estate help" },
-  { icon: "✂️", name: "Personal services" },
-];
+import { ArrowRight, Scale, ShieldCheck, Eye, TrendingDown, CheckCircle2, Sparkles } from "lucide-react";
 
 const STEPS = [
-  {
-    n: "1",
-    title: "Post a request",
-    body: "Describe the product or service you need, with details and an optional budget. It takes less than a minute.",
-  },
-  {
-    n: "2",
-    title: "Sellers compete",
-    body: "Verified sellers browse open requests and submit their best price along with a pitch — timeline, quality, and what's included.",
-  },
-  {
-    n: "3",
-    title: "We mediate the price",
-    body: "Our team reviews every single offer before you see it. Overpriced offers get adjusted or rejected, so what reaches you is competitive and rational.",
-  },
-  {
-    n: "4",
-    title: "Accept & track",
-    body: "Accept the offer you like and we track the order from pending to delivered — with a clear status at every step.",
-  },
+  { n: "01", title: "Post a request", body: "Describe what you need — product or service, with details and an optional budget.", icon: Eye },
+  { n: "02", title: "Sellers compete", body: "Verified sellers submit their best price with a pitch: timeline, quality, what's included.", icon: TrendingDown },
+  { n: "03", title: "We mediate", body: "Every offer is reviewed. Overpriced ones get adjusted or rejected before you see them.", icon: Scale },
+  { n: "04", title: "Accept & track", body: "Accept the offer you like. We track the order from pending to delivered.", icon: CheckCircle2 },
 ];
 
 export default function Home() {
   return (
     <div>
-      {/* Hero */}
-      <section className="text-center pt-16 pb-12">
-        <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-semibold tracking-wide uppercase rounded-full px-4 py-1.5 mb-6">
-          Products · Services · Fair prices
-        </span>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-5">
-          Get what you need at a{" "}
-          <span className="text-indigo-600">fair, mediated price</span>
-        </h1>
-        <p className="text-slate-600 text-lg max-w-2xl mx-auto mb-8">
-          MiddleMarket sits between buyers and sellers. You post what you want, sellers
-          compete for your business, and every price is reviewed by our team before it ever
-          reaches you — no haggling, no overpaying.
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <Link
-            href="/register?role=BUYER"
-            className="bg-indigo-600 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition"
-          >
-            I want to buy →
-          </Link>
-          <Link
-            href="/register?role=SELLER"
-            className="bg-white border-2 border-indigo-600 text-indigo-700 font-semibold px-8 py-3.5 rounded-xl hover:bg-indigo-50 transition"
-          >
-            I want to sell
-          </Link>
-        </div>
-        <div className="flex justify-center gap-10 mt-12 text-sm text-slate-500">
-          <div>
-            <p className="text-2xl font-bold text-slate-900">100%</p>
-            <p>offers price-reviewed</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-slate-900">2 min</p>
-            <p>to post a request</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-slate-900">0 fees</p>
-            <p>for buyers to post</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section className="py-12 border-t">
-        <h2 className="text-2xl font-bold text-center mb-2">
-          Anything, from products to services
-        </h2>
-        <p className="text-slate-500 text-center mb-8">
-          If someone can sell it, you can request it.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {CATEGORIES.map((c) => (
-            <div
-              key={c.name}
-              className="bg-white border rounded-xl p-4 flex items-center gap-3 hover:border-indigo-300 hover:shadow-sm transition"
-            >
-              <span className="text-2xl">{c.icon}</span>
-              <span className="text-sm font-medium">{c.name}</span>
+      {/* ─── Hero — split layout ─── */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-dots" aria-hidden="true" />
+        <div className="relative grid lg:grid-cols-2 gap-12 items-center py-section">
+          {/* Left: copy */}
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+              <Sparkles className="h-3 w-3" aria-hidden="true" />
+              Every price reviewed by a human
             </div>
-          ))}
-        </div>
-      </section>
+            <h1 className="text-display font-semibold">
+              Get what you need at a fair, mediated price
+            </h1>
+            <p className="max-w-prose text-lead text-muted-foreground">
+              Post a request, sellers compete, and our team reviews every offer
+              before it reaches you. No haggling, no overpaying.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/register?role=BUYER"
+                className="group inline-flex h-11 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+              >
+                I want to buy
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link
+                href="/register?role=SELLER"
+                className="inline-flex h-11 items-center rounded-md border border-input bg-background px-6 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                I want to sell
+              </Link>
+            </div>
+            <div className="flex items-center gap-6 pt-4">
+              {[
+                ["100%", "price-reviewed"],
+                ["2 min", "to post"],
+                ["$0", "buyer fees"],
+              ].map(([v, l]) => (
+                <div key={l}>
+                  <p className="text-2xl font-bold tracking-tight">{v}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{l}</p>
+                </div>
+              ))}
+            </div>
+          </div>
 
-      {/* How it works */}
-      <section className="py-12 border-t">
-        <h2 className="text-2xl font-bold text-center mb-2">How it works</h2>
-        <p className="text-slate-500 text-center mb-10">
-          A human in the middle keeps every deal honest.
-        </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {STEPS.map((s) => (
-            <div key={s.n} className="bg-white border rounded-xl p-6 relative">
-              <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center mb-4">
-                {s.n}
+          {/* Right: visual mockup */}
+          <div className="relative hidden lg:block">
+            <div className="rounded-card border border-border bg-card shadow-lg overflow-hidden">
+              {/* Mock browser bar */}
+              <div className="flex items-center gap-1.5 border-b border-border px-4 py-3 bg-secondary/30">
+                <div className="h-2.5 w-2.5 rounded-full bg-red-400/60" />
+                <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/60" />
+                <div className="h-2.5 w-2.5 rounded-full bg-green-400/60" />
+                <div className="ml-3 flex-1 h-5 rounded bg-secondary/50" />
               </div>
-              <h3 className="font-semibold mb-2">{s.title}</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">{s.body}</p>
+              {/* Mock content */}
+              <div className="p-5 space-y-4">
+                {/* Mock request */}
+                <div className="rounded-lg border border-border p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="h-3 w-32 rounded bg-secondary" />
+                    <div className="h-5 w-16 rounded-full bg-secondary" />
+                  </div>
+                  <div className="h-2 w-full rounded bg-secondary/60 mb-1.5" />
+                  <div className="h-2 w-3/4 rounded bg-secondary/60" />
+                </div>
+                {/* Mock offer */}
+                <div className="rounded-lg border border-border bg-accent/30 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-full bg-secondary" />
+                      <div className="h-2.5 w-20 rounded bg-secondary" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-foreground">$420</p>
+                      <p className="text-xs text-muted-foreground line-through">$580</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-20 rounded-full bg-emerald-500/15" />
+                    <div className="h-2 w-24 rounded bg-secondary/60" />
+                  </div>
+                </div>
+                {/* Mock second offer */}
+                <div className="rounded-lg border border-border p-4 opacity-60">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-full bg-secondary" />
+                      <div className="h-2.5 w-24 rounded bg-secondary" />
+                    </div>
+                    <div className="h-5 w-12 rounded bg-secondary" />
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
+            {/* Floating badge */}
+            <div className="absolute -top-3 -right-3 rounded-lg border border-border bg-card shadow-lg px-3 py-2 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <span className="text-xs font-medium">Price verified</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Why mediated */}
-      <section className="py-12 border-t">
-        <div className="bg-indigo-600 rounded-2xl px-8 py-12 text-center text-white">
-          <h2 className="text-2xl font-bold mb-3">Why a mediated marketplace?</h2>
-          <p className="max-w-2xl mx-auto text-indigo-100 mb-8">
-            Open marketplaces leave you guessing whether a price is fair. Here, a real
-            reviewer compares every offer against the market and the buyer&apos;s budget —
-            adjusting or rejecting anything unreasonable before you ever see it.
+      {/* ─── Bento features — asymmetric grid ─── */}
+      <section className="border-t border-border py-20">
+        <div className="max-w-2xl mb-10">
+          <h2 className="text-title font-semibold mb-3">
+            A human in the loop, not an algorithm
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Most marketplaces optimize for volume. We optimize for fair deals.
           </p>
-          <Link
-            href="/register"
-            className="inline-block bg-white text-indigo-700 font-semibold px-8 py-3 rounded-xl hover:bg-indigo-50 transition"
-          >
-            Get started free
-          </Link>
+        </div>
+        <div className="grid lg:grid-cols-3 gap-4">
+          {/* Large feature */}
+          <div className="lg:col-span-2 lg:row-span-2 rounded-card border border-border bg-accent/30 p-8 flex flex-col justify-between min-h-[280px]">
+            <div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-secondary mb-4">
+                <Scale className="h-5 w-5 text-foreground" />
+              </div>
+              <h3 className="text-heading font-semibold mb-2">Every price reviewed</h3>
+              <p className="text-muted-foreground leading-relaxed max-w-md">
+                Our team checks every offer against market rates before it reaches you.
+                Overpriced? Adjusted. Unreasonable? Rejected. What you see is competitive —
+                guaranteed.
+              </p>
+            </div>
+            <div className="flex items-center gap-4 mt-6 pt-6 border-t border-border">
+              <div>
+                <p className="text-title font-semibold">100%</p>
+                <p className="text-xs text-muted-foreground">offers reviewed</p>
+              </div>
+              <div className="h-10 w-px bg-border" />
+              <div>
+                <p className="text-title font-semibold">0</p>
+                <p className="text-xs text-muted-foreground">hidden fees</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Small features */}
+          <div className="rounded-card border border-border bg-card p-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary mb-3">
+              <TrendingDown className="h-5 w-5 text-foreground" />
+            </div>
+            <h3 className="font-semibold mb-1">Sellers compete</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Multiple sellers see your request and submit their best price.
+            </p>
+          </div>
+
+          <div className="rounded-card border border-border bg-card p-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary mb-3">
+              <Eye className="h-5 w-5 text-foreground" />
+            </div>
+            <h3 className="font-semibold mb-1">Full transparency</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              See original price, adjusted price, and the reasoning behind it.
+            </p>
+          </div>
+
+          <div className="rounded-card border border-border bg-card p-6 lg:col-span-2">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary shrink-0">
+                <CheckCircle2 className="h-5 w-5 text-foreground" />
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Tracked end-to-end</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  From request to delivery, track every step with clear status updates.
+                  No black boxes, no guessing.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <footer className="border-t py-8 text-center text-sm text-slate-400">
-        MiddleMarket — connecting what people want with who can offer it, at a rational price.
+      {/* ─── How it works — horizontal timeline ─── */}
+      <section className="border-t border-border py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-title font-semibold mb-3">How it works</h2>
+          <p className="text-muted-foreground text-lg">Four steps from request to delivery.</p>
+        </div>
+        <div className="relative">
+          {/* Connecting line */}
+          <div className="absolute top-8 left-0 right-0 h-px bg-border hidden lg:block" />
+          <div className="grid lg:grid-cols-4 gap-8">
+            {STEPS.map((s) => (
+              <div key={s.n} className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full border-2 border-border bg-card">
+                    <s.icon className="h-6 w-6 text-foreground" />
+                  </div>
+                  <span className="text-4xl font-bold text-border tabular-nums">{s.n}</span>
+                </div>
+                <h3 className="font-semibold mb-2">{s.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CTA — full-width banner ─── */}
+      <section className="border-t border-border">
+        {/* Every colour here is derived from --primary rather than hardcoded
+            white: --primary is near-black in light mode and near-white in dark,
+            so literal white text on it disappeared entirely in dark mode. */}
+        <div className="my-12 overflow-hidden rounded-card bg-primary px-8 py-16 text-center">
+          <div>
+            <h2 className="text-title font-semibold text-primary-foreground mb-4">
+              Ready to experience fair pricing?
+            </h2>
+            <p className="text-primary-foreground/80 max-w-prose mx-auto mb-8">
+              Join MiddleMarket today — free for buyers, and sellers only pay when they win.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/register?role=BUYER"
+                className="group inline-flex h-11 items-center gap-2 rounded-md bg-primary-foreground px-6 text-sm font-medium text-primary shadow-sm transition-opacity hover:opacity-90"
+              >
+                Start buying
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/register?role=SELLER"
+                className="inline-flex h-11 items-center rounded-md border border-primary-foreground/40 px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-foreground/10"
+              >
+                Start selling
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Footer — multi-column ─── */}
+      <footer className="border-t border-border pt-12 pb-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+                <Scale className="h-4 w-4 text-primary-foreground" strokeWidth={2.2} />
+              </div>
+              <span className="font-bold">MiddleMarket</span>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Connecting what people want with who can offer it, at a rational price.
+            </p>
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold mb-3">For buyers</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><Link href="/register?role=BUYER" className="hover:text-foreground transition-colors">Sign up</Link></li>
+              <li><Link href="/login" className="hover:text-foreground transition-colors">Log in</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold mb-3">For sellers</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><Link href="/register?role=SELLER" className="hover:text-foreground transition-colors">Sign up</Link></li>
+              <li><Link href="/login" className="hover:text-foreground transition-colors">Log in</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold mb-3">How it works</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>Post a request</li>
+              <li>Sellers compete</li>
+              <li>We mediate the price</li>
+              <li>Accept and track</li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-border pt-6 flex items-center justify-between text-sm text-muted-foreground">
+          <p>© {new Date().getFullYear()} MiddleMarket. All rights reserved.</p>
+          <p>Built for fair deals.</p>
+        </div>
       </footer>
     </div>
   );

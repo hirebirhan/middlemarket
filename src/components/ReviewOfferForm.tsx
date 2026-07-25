@@ -1,60 +1,126 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, X } from "lucide-react";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
-export default function ReviewOfferForm({ offerId }: { offerId: string }) {
+export default function ReviewOfferForm({
+  offerId,
+  askingPrice,
+}: {
+  offerId: string;
+  askingPrice: string;
+}) {
   const router = useRouter();
+  const noteRef = useRef<HTMLTextAreaElement>(null);
   const [adminPrice, setAdminPrice] = useState("");
   const [adminNote, setAdminNote] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState<"APPROVE" | "REJECT" | null>(null);
+  const [error, setError] = useState("");
+
+  const parsedPrice = adminPrice.trim() === "" ? null : Number(adminPrice);
+  const priceIsValid =
+    parsedPrice === null || (Number.isFinite(parsedPrice) && parsedPrice > 0);
 
   async function review(action: "APPROVE" | "REJECT") {
-    setLoading(true);
-    await fetch(`/api/offers/${offerId}/review`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action,
-        adminPrice: adminPrice ? Number(adminPrice) : null,
-        adminNote: adminNote || null,
-      }),
-    });
-    setLoading(false);
-    router.refresh();
+    setError("");
+
+    // Mirrors the server rule, so the admin finds out before the round trip.
+    if (action === "REJECT" && !adminNote.trim()) {
+      setError("Tell the seller why this offer was rejected.");
+      noteRef.current?.focus();
+      return;
+    }
+    if (action === "APPROVE" && !priceIsValid) {
+      setError("Adjusted price must be greater than 0.");
+      return;
+    }
+
+    setPending(action);
+    try {
+      const res = await fetch(`/api/offers/${offerId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          adminPrice: action === "APPROVE" ? parsedPrice : null,
+          adminNote: adminNote.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Could not save this review.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Could not reach the server.");
+    } finally {
+      setPending(null);
+    }
   }
 
+  const busy = pending !== null;
+
   return (
-    <div className="mt-3 border-t pt-3 flex flex-wrap items-center gap-2">
-      <input
-        value={adminPrice}
-        onChange={(e) => setAdminPrice(e.target.value)}
-        type="number"
-        min="0.01"
-        step="0.01"
-        placeholder="Adjusted price (optional)"
-        className="border rounded px-3 py-1.5 text-sm w-48"
-      />
-      <input
-        value={adminNote}
-        onChange={(e) => setAdminNote(e.target.value)}
-        placeholder="Note to buyer/seller (optional)"
-        className="border rounded px-3 py-1.5 text-sm flex-1 min-w-48"
-      />
-      <button
-        disabled={loading}
-        onClick={() => review("APPROVE")}
-        className="bg-emerald-600 text-white text-sm rounded px-3 py-1.5 hover:bg-emerald-700 disabled:opacity-50"
-      >
-        Approve
-      </button>
-      <button
-        disabled={loading}
-        onClick={() => review("REJECT")}
-        className="bg-red-600 text-white text-sm rounded px-3 py-1.5 hover:bg-red-700 disabled:opacity-50"
-      >
-        Reject
-      </button>
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          label="Adjusted price"
+          optional
+          hint={
+            priceIsValid && parsedPrice
+              ? `Buyer sees $${parsedPrice.toFixed(2)} instead of $${askingPrice}.`
+              : `Leave empty to approve at $${askingPrice}.`
+          }
+        >
+          <Input
+            value={adminPrice}
+            onChange={(e) => setAdminPrice(e.target.value)}
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="450.00"
+          />
+        </Field>
+
+        <Field
+          label="Note to buyer & seller"
+          hint="Required when rejecting."
+        >
+          <Textarea
+            ref={noteRef}
+            value={adminNote}
+            onChange={(e) => setAdminNote(e.target.value)}
+            rows={2}
+            className="min-h-[2.5rem]"
+            placeholder="Why this price was adjusted or rejected"
+          />
+        </Field>
+      </div>
+
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button disabled={busy} onClick={() => review("APPROVE")}>
+          <Check className="h-4 w-4" aria-hidden="true" />
+          {pending === "APPROVE" ? "Approving…" : "Approve offer"}
+        </Button>
+        <Button
+          variant="destructive"
+          disabled={busy}
+          onClick={() => review("REJECT")}
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+          {pending === "REJECT" ? "Rejecting…" : "Reject"}
+        </Button>
+      </div>
     </div>
   );
 }

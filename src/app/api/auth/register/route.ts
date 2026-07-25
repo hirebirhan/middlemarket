@@ -18,6 +18,6 @@ export async function POST(req: Request) {
   const user = await prisma.user.create({
     data: { email, name, role, password: await bcrypt.hash(password, 10) },
   });
-  setSessionCookie(signSession({ userId: user.id, role: user.role }));
+  await setSessionCookie(signSession({ userId: user.id, role: user.role }));
   return NextResponse.json({ id: user.id, email: user.email, name: user.name, role: user.role });
 }
