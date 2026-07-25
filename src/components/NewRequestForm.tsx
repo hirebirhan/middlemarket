@@ -17,12 +17,18 @@ const TYPES = [
 
 type RequestType = (typeof TYPES)[number]["value"];
 
-export default function NewRequestForm() {
+export default function NewRequestForm({
+  initialTitle,
+}: {
+  /** Carried from the landing-page request box, so a new buyer lands with the
+      form already open on what they came here to ask for. */
+  initialTitle?: string | null;
+}) {
   const router = useRouter();
   const [type, setType] = useState<RequestType>("PRODUCT");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(initialTitle));
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,6 +43,7 @@ export default function NewRequestForm() {
         body: JSON.stringify({
           title: String(data.get("title")),
           description: String(data.get("description")),
+          sku: data.get("sku") ? String(data.get("sku")) : null,
           budget: data.get("budget") ? Number(data.get("budget")) : null,
           type,
         }),
@@ -94,9 +101,23 @@ export default function NewRequestForm() {
             name="title"
             required
             maxLength={120}
+            defaultValue={initialTitle ?? undefined}
             placeholder="iPhone 15, plumbing repair…"
           />
         </Field>
+        {type === "PRODUCT" && (
+          <Field
+            label="Exact model"
+            optional
+            hint="The precise model, so pricing is benchmarked against the exact item."
+          >
+            <Input
+              name="sku"
+              maxLength={120}
+              placeholder="iPhone 15 128GB, MacBook Air M2…"
+            />
+          </Field>
+        )}
         <Field label="Details">
           <Textarea
             name="description"

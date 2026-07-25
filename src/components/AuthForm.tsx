@@ -39,6 +39,10 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // What the visitor typed into the landing-page request box. Carried through
+  // signup so the search box is a real starting point, not a decorative one.
+  const need = isRegister ? params.get("need")?.trim() : null;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -69,12 +73,16 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
       }
 
       const user = await res.json();
+      const buyerHome =
+        need && user.role === "BUYER"
+          ? `/buyer?need=${encodeURIComponent(need)}`
+          : "/buyer";
       router.push(
         user.role === "ADMIN"
           ? "/admin"
           : user.role === "SELLER"
             ? "/seller"
-            : "/buyer"
+            : buyerHome
       );
       router.refresh();
     } catch {
@@ -84,7 +92,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center py-10 sm:min-h-[70vh] sm:py-16">
+    <div className="mx-auto flex w-full max-w-md flex-col justify-center py-10 min-h-screen sm:py-16">
       <Card>
         <CardHeader>
           <CardTitle className="text-heading">
@@ -98,7 +106,23 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <form onSubmit={onSubmit} className="space-y-4" noValidate={false}>
+          {need && (
+            <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
+              <p className="text-xs text-muted-foreground">You&apos;re looking for</p>
+              <p className="mt-0.5 text-sm font-medium">{need}</p>
+            </div>
+          )}
+
+          {/* method="post" is never used on the hydrated path (onSubmit calls
+              preventDefault). It matters if the form is submitted before React
+              hydrates: the browser default would otherwise GET, putting the
+              password in the URL, browser history and server logs. */}
+          <form
+            onSubmit={onSubmit}
+            method="post"
+            className="space-y-4"
+            noValidate={false}
+          >
             {/* The role decision shapes the whole account, so it leads the
                 form rather than sitting buried between name and email. */}
             {isRegister && (

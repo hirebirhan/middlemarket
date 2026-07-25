@@ -77,7 +77,7 @@ export function Segmented<T extends string>({
             className={cn(
               "rounded-md px-3 py-2 text-sm font-medium transition-colors",
               // 44px tap target on touch devices
-              "min-h-[2.5rem]",
+              "min-h-10",
               selected
                 ? "bg-raised text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"

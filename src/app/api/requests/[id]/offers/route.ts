@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Condition } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser, AuthError } from "@/lib/auth";
 
@@ -6,7 +7,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params;
     const user = await requireUser("SELLER");
-    const { price, message } = await req.json();
+    const { price, message, condition } = await req.json();
 
     const amount = Number(price);
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -22,6 +23,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         { status: 400 }
       );
     }
+    // `in` would also match prototype keys like "constructor" and "toString",
+    // which then reach Prisma as an invalid enum and throw a 500.
+    const conditionValue: Condition | null = Object.values(Condition).includes(
+      condition as Condition
+    )
+      ? (condition as Condition)
+      : null;
 
     const request = await prisma.request.findUnique({ where: { id } });
     if (!request || request.status !== "OPEN") {
@@ -45,7 +53,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     const offer = await prisma.offer.create({
-      data: { price: amount, message: pitch, requestId: id, sellerId: user.id },
+      data: {
+        price: amount,
+        message: pitch,
+        condition: conditionValue as never,
+        requestId: id,
+        sellerId: user.id,
+      },
     });
     return NextResponse.json(offer);
   } catch (e) {

@@ -22,6 +22,11 @@ const VARIANTS: Record<string, Variant> = {
   // Request type
   PRODUCT: "outline",
   SERVICE: "outline",
+  // Offer condition
+  NEW: "success",
+  OPEN_BOX: "info",
+  REFURBISHED: "info",
+  USED: "neutral",
 };
 
 export function formatStatus(value: string) {

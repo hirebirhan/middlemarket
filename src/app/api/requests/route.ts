@@ -5,12 +5,20 @@ import { requireUser, AuthError } from "@/lib/auth";
 export async function POST(req: Request) {
   try {
     const user = await requireUser("BUYER");
-    const { title, description, type, budget } = await req.json();
+    const { title, description, sku, type, budget } = await req.json();
     if (!title || !description || (type !== "PRODUCT" && type !== "SERVICE")) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
+    const skuValue = typeof sku === "string" && sku.trim() ? sku.trim() : null;
     const request = await prisma.request.create({
-      data: { title, description, type, budget: budget || null, buyerId: user.id },
+      data: {
+        title,
+        description,
+        sku: skuValue,
+        type,
+        budget: budget || null,
+        buyerId: user.id,
+      },
     });
     return NextResponse.json(request);
   } catch (e) {

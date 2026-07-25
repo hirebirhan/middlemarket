@@ -56,8 +56,8 @@ export default async function AdminPage() {
   );
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-      <aside className="space-y-6">
+    <div className="flex flex-col gap-8 lg:flex-row">
+      <aside className="space-y-6 lg:w-65 lg:shrink-0">
         <div>
           <h1 className="text-title font-semibold">Control room</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Admin dashboard</p>
@@ -116,6 +116,11 @@ export default async function AdminPage() {
                     <div className="flex items-start justify-between gap-4 bg-card p-5">
                       <div className="min-w-0">
                         <h3 className="font-semibold">{offer.request.title}</h3>
+                        {offer.request.sku && (
+                          <p className="mt-0.5 text-xs font-medium text-foreground">
+                            {offer.request.sku}
+                          </p>
+                        )}
                         <p className="mt-1 max-w-prose text-sm text-muted-foreground">
                           {offer.request.description}
                         </p>
@@ -153,6 +158,11 @@ export default async function AdminPage() {
                         <p className="text-title font-semibold tabular-nums">
                           {asked}
                         </p>
+                        {offer.condition && (
+                          <div className="mt-1">
+                            <StatusBadge value={offer.condition} />
+                          </div>
+                        )}
                       </div>
                       <p className="max-w-prose text-sm text-muted-foreground">
                         {offer.message}
@@ -279,6 +289,12 @@ export default async function AdminPage() {
                             {formatMoney(offer.price)}
                           </span>{" "}
                           asked
+                        </p>
+                      )}
+                      {(offer.bandLow || offer.bandHigh) && (
+                        <p className="text-xs tabular-nums text-muted-foreground">
+                          band {formatMoney(offer.bandLow) ?? "—"}–
+                          {formatMoney(offer.bandHigh) ?? "—"}
                         </p>
                       )}
                     </RecordCell>

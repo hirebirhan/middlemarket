@@ -13,10 +13,17 @@ import { RecordList, RecordRow, RecordCell } from "@/components/ui/record-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function BuyerPage() {
+export default async function BuyerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ need?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "BUYER") redirect(user.role === "ADMIN" ? "/admin" : "/seller");
+
+  // Carried from the landing-page request box through signup.
+  const { need } = await searchParams;
 
   const requests = await prisma.request.findMany({
     where: { buyerId: user.id },
@@ -37,8 +44,8 @@ export default async function BuyerPage() {
   );
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-      <aside className="space-y-6">
+    <div className="flex flex-col gap-8 lg:flex-row">
+      <aside className="space-y-6 lg:w-65 lg:shrink-0">
         <div>
           <h1 className="text-title font-semibold">{user.name.split(" ")[0]}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Buyer dashboard</p>
@@ -62,7 +69,7 @@ export default async function BuyerPage() {
             },
           ]}
         />
-        <NewRequestForm />
+        <NewRequestForm initialTitle={need} />
       </aside>
 
       <section id="requests" className="min-w-0 scroll-mt-20">
@@ -89,6 +96,11 @@ export default async function BuyerPage() {
                   <div className="flex items-start justify-between gap-4 bg-card p-5">
                     <div className="min-w-0">
                       <h3 className="font-semibold">{request.title}</h3>
+                      {request.sku && (
+                        <p className="mt-0.5 text-xs font-medium text-foreground">
+                          {request.sku}
+                        </p>
+                      )}
                       <p className="mt-1 max-w-prose text-sm text-muted-foreground">
                         {request.description}
                       </p>
@@ -127,7 +139,12 @@ export default async function BuyerPage() {
                         return (
                           <RecordRow key={offer.id}>
                             <RecordCell>
-                              <p className="font-medium">{offer.seller.name}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-medium">{offer.seller.name}</p>
+                                {offer.condition && (
+                                  <StatusBadge value={offer.condition} />
+                                )}
+                              </div>
                               <p className="mt-0.5 max-w-prose text-xs text-muted-foreground">
                                 {offer.message}
                               </p>

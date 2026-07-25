@@ -45,8 +45,8 @@ export default async function SellerPage() {
   const inReview = myOffers.filter((o) => o.status === "PENDING_REVIEW").length;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-      <aside className="space-y-6">
+    <div className="flex flex-col gap-8 lg:flex-row">
+      <aside className="space-y-6 lg:w-65 lg:shrink-0">
         <div>
           <h1 className="text-title font-semibold">{user.name.split(" ")[0]}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Seller dashboard</p>
@@ -110,6 +110,11 @@ export default async function SellerPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <h3 className="font-semibold">{request.title}</h3>
+                        {request.sku && (
+                          <p className="mt-0.5 text-xs font-medium text-foreground">
+                            {request.sku}
+                          </p>
+                        )}
                         <p className="mt-1 max-w-prose text-sm text-muted-foreground">
                           {request.description}
                         </p>
@@ -154,6 +159,7 @@ export default async function SellerPage() {
                         <OfferForm
                           requestId={request.id}
                           budget={budget}
+                          requestType={request.type}
                           label={wasRejected ? "Offer again" : "Make an offer"}
                         />
                       </>
@@ -190,7 +196,10 @@ export default async function SellerPage() {
               {myOffers.map((offer) => (
                 <RecordRow key={offer.id}>
                   <RecordCell>
-                    <p className="font-medium">{offer.request.title}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{offer.request.title}</p>
+                      {offer.condition && <StatusBadge value={offer.condition} />}
+                    </div>
                     {offer.adminNote && (
                       <p className="mt-0.5 max-w-prose text-xs text-muted-foreground">
                         {offer.adminNote}

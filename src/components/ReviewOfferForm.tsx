@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
-import { Field } from "@/components/ui/field";
+import { Field, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,17 @@ export default function ReviewOfferForm({
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const [adminPrice, setAdminPrice] = useState("");
   const [adminNote, setAdminNote] = useState("");
+  const [bandLow, setBandLow] = useState("");
+  const [bandHigh, setBandHigh] = useState("");
   const [pending, setPending] = useState<"APPROVE" | "REJECT" | null>(null);
   const [error, setError] = useState("");
 
   const parsedPrice = adminPrice.trim() === "" ? null : Number(adminPrice);
   const priceIsValid =
     parsedPrice === null || (Number.isFinite(parsedPrice) && parsedPrice > 0);
+
+  const low = bandLow.trim() === "" ? null : Number(bandLow);
+  const high = bandHigh.trim() === "" ? null : Number(bandHigh);
 
   async function review(action: "APPROVE" | "REJECT") {
     setError("");
@@ -40,6 +45,17 @@ export default function ReviewOfferForm({
       setError("Adjusted price must be greater than 0.");
       return;
     }
+    if (
+      (low !== null && (!Number.isFinite(low) || low <= 0)) ||
+      (high !== null && (!Number.isFinite(high) || high <= 0))
+    ) {
+      setError("Fair-price band values must be greater than 0.");
+      return;
+    }
+    if (low !== null && high !== null && low > high) {
+      setError("Fair-price band low must be ≤ high.");
+      return;
+    }
 
     setPending(action);
     try {
@@ -50,6 +66,8 @@ export default function ReviewOfferForm({
           action,
           adminPrice: action === "APPROVE" ? parsedPrice : null,
           adminNote: adminNote.trim() || null,
+          bandLow: low,
+          bandHigh: high,
         }),
       });
       if (!res.ok) {
@@ -69,6 +87,35 @@ export default function ReviewOfferForm({
 
   return (
     <div className="space-y-4">
+      <FieldSet
+        label="Fair-price band"
+        hint="The benchmark range you're checking this offer against (Gate 3)."
+      >
+        <div className="flex items-center gap-2">
+          <Input
+            value={bandLow}
+            onChange={(e) => setBandLow(e.target.value)}
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="Low"
+            aria-label="Fair-price band low"
+          />
+          <span className="text-sm text-muted-foreground">–</span>
+          <Input
+            value={bandHigh}
+            onChange={(e) => setBandHigh(e.target.value)}
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="High"
+            aria-label="Fair-price band high"
+          />
+        </div>
+      </FieldSet>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Adjusted price"
@@ -99,7 +146,7 @@ export default function ReviewOfferForm({
             value={adminNote}
             onChange={(e) => setAdminNote(e.target.value)}
             rows={2}
-            className="min-h-[2.5rem]"
+            className="min-h-10"
             placeholder="Why this price was adjusted or rejected"
           />
         </Field>

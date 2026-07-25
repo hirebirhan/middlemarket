@@ -6,7 +6,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params;
     await requireUser("ADMIN");
-    const { action, adminPrice, adminNote } = await req.json();
+    const { action, adminPrice, adminNote, bandLow, bandHigh } = await req.json();
 
     if (action !== "APPROVE" && action !== "REJECT") {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -34,6 +34,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
+    // The fair-price band the admin benchmarked against (Gate 3). Recorded on
+    // both approve and reject — a rejection above the band is signal too.
+    const parseBand = (v: unknown): number | null => {
+      if (v === null || v === undefined || v === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    const low = parseBand(bandLow);
+    const high = parseBand(bandHigh);
+    if (low !== null && high !== null && low > high) {
+      return NextResponse.json(
+        { error: "Fair-price band low must be ≤ high." },
+        { status: 400 }
+      );
+    }
+
     const offer = await prisma.offer.findUnique({ where: { id } });
     if (!offer || offer.status !== "PENDING_REVIEW") {
       return NextResponse.json({ error: "Offer not pending review" }, { status: 400 });
@@ -47,6 +63,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         status: action === "APPROVE" ? "APPROVED" : "REJECTED",
         adminPrice: price,
         adminNote: note || null,
+        bandLow: low,
+        bandHigh: high,
       },
     });
     return NextResponse.json(updated);

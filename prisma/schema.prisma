@@ -39,6 +39,15 @@ enum OrderStatus {
   CANCELLED
 }
 
+// Condition of the item a seller is offering. Optional because it only
+// applies to product offers, not services.
+enum Condition {
+  NEW
+  OPEN_BOX
+  REFURBISHED
+  USED
+}
+
 model User {
   id        String    @id @default(cuid())
   email     String    @unique
@@ -54,6 +63,9 @@ model Request {
   id          String        @id @default(cuid())
   title       String
   description String
+  // Normalized model identity for products, e.g. "iPhone 15 128GB". The founder
+  // sets this when posting so mediation and price bands key off an exact SKU.
+  sku         String?
   type        RequestType
   budget      Decimal?      @db.Decimal(12, 2)
   status      RequestStatus @default(OPEN)
@@ -67,7 +79,13 @@ model Offer {
   id            String      @id @default(cuid())
   price         Decimal     @db.Decimal(12, 2)
   adminPrice    Decimal?    @db.Decimal(12, 2)
+  // Fair-price band the admin compared against at review time (Gate 3). Records
+  // the benchmark used, so bands can later be computed per SKU from real data.
+  bandLow       Decimal?    @db.Decimal(12, 2)
+  bandHigh      Decimal?    @db.Decimal(12, 2)
   message       String
+  // What the seller is providing. Seller-set, product offers only.
+  condition     Condition?
   status        OfferStatus @default(PENDING_REVIEW)
   adminNote     String?
   request       Request     @relation(fields: [requestId], references: [id])

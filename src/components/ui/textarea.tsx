@@ -15,7 +15,7 @@ const Textarea = React.forwardRef<
       {...fieldProps}
       {...props}
       className={cn(
-        "flex min-h-[5rem] w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors",
+        "flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors",
         "placeholder:text-muted-foreground",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "aria-[invalid]:border-danger-foreground",

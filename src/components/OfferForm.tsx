@@ -8,14 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { Select } from "@/components/ui/select";
 
 export default function OfferForm({
   requestId,
   budget,
+  requestType,
   label = "Make an offer",
 }: {
   requestId: string;
   budget?: string | null;
+  /** Product offers capture item condition; services don't. */
+  requestType?: "PRODUCT" | "SERVICE";
   /** Lets the seller page say "Offer again" after a rejection. */
   label?: string;
 }) {
@@ -36,6 +40,7 @@ export default function OfferForm({
         body: JSON.stringify({
           price: Number(form.get("price")),
           message: String(form.get("message")),
+          condition: form.get("condition") || null,
         }),
       });
       if (!res.ok) {
@@ -84,8 +89,10 @@ export default function OfferForm({
         <Field
           label="Your price"
           hint={
+            // `budget` arrives already formatted by formatMoney, which includes
+            // the currency symbol — prefixing another "$" rendered "$$3,000.00".
             budget
-              ? `The buyer budgeted $${budget}.`
+              ? `The buyer budgeted ${budget}.`
               : "The buyer did not set a budget."
           }
         >
@@ -99,6 +106,19 @@ export default function OfferForm({
             placeholder="0.00"
           />
         </Field>
+        {requestType === "PRODUCT" && (
+          <Field label="Condition">
+            <Select name="condition" required defaultValue="">
+              <option value="" disabled>
+                Select condition…
+              </option>
+              <option value="NEW">New</option>
+              <option value="OPEN_BOX">Open box</option>
+              <option value="REFURBISHED">Refurbished</option>
+              <option value="USED">Used</option>
+            </Select>
+          </Field>
+        )}
         <Field label="Your pitch">
           <Textarea
             name="message"
