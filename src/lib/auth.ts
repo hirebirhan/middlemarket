@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { prisma } from "./prisma";
+import { ApiError } from "./api";
 import type { Role, User } from "@prisma/client";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
@@ -39,17 +40,23 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 }
 
+/**
+ * Messages are written for the person who will read them in an alert, not for
+ * a log: "Forbidden" told a seller nothing about what to do next.
+ */
 export async function requireUser(role?: Role): Promise<User> {
   const user = await getCurrentUser();
-  if (!user) throw new AuthError(401, "Not authenticated");
-  if (role && user.role !== role) throw new AuthError(403, "Forbidden");
+  if (!user) {
+    throw new AuthError(401, "Your session has expired. Please log in again.");
+  }
+  if (role && user.role !== role) {
+    throw new AuthError(403, "Your account can't do that.");
+  }
   return user;
 }
 
-export class AuthError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
+/**
+ * Extends ApiError so a route's single `handleApiError` catch covers
+ * authentication, authorisation and validation alike.
+ */
+export class AuthError extends ApiError {}

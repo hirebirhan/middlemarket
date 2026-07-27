@@ -1,363 +1,367 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
-  Scale,
-  ShieldCheck,
-  Search,
   BadgeCheck,
-  ScanSearch,
-  Gavel,
-  Truck,
-  Smartphone,
-  Laptop,
-  Tv,
-  Camera,
-  Headphones,
-  Gamepad2,
+  CheckCircle2,
+  ClipboardCheck,
+  FileSearch,
+  Search,
+  ShieldCheck,
+  Store,
+  XCircle,
 } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PublicRequestStarter } from "@/components/PublicRequestStarter";
+import { Eyebrow, Money } from "@/components/Typography";
+import { formatMoney } from "@/lib/money";
 
-/** Popular starting points — these seed the request box, they are not listings. */
-const SUGGESTIONS = [
-  "iPhone 15 128GB",
-  "MacBook Air M2",
-  "Samsung A54",
-  "65\" smart TV",
-];
+const REVIEW_EXAMPLE = {
+  sellerAsk: 62000,
+  buyerPrice: 54500,
+  item: "iPhone 15 128GB",
+  note: "Adjusted to the top of the reviewed price band for this model.",
+} as const;
 
-const CATEGORIES = [
-  { label: "Phones", icon: Smartphone },
-  { label: "Laptops", icon: Laptop },
-  { label: "TVs", icon: Tv },
-  { label: "Cameras", icon: Camera },
-  { label: "Audio", icon: Headphones },
-  { label: "Gaming", icon: Gamepad2 },
-];
+const HERO_PREVIEW = {
+  item: "Office chairs",
+  detail: "4 ergonomic mesh chairs · Addis Ababa · delivery this week",
+  budget: 40000,
+  sellerOffer: 38500,
+  buyerVisible: 36800,
+  note: "Lower local matches found. Delivery included.",
+} as const;
 
 const STEPS = [
   {
-    n: "01",
-    title: "Say what you need",
-    body: "Name the exact model. Takes a minute — no account needed to look around.",
+    title: "Share the exact need",
+    body: "Add the item, model, quantity, location, timing, and budget if you have one.",
     icon: Search,
   },
   {
-    n: "02",
-    title: "Verified shops quote",
-    body: "Your request goes to shops we've checked. They compete for it.",
-    icon: Gavel,
+    title: "Shops quote the same brief",
+    body: "Every seller responds to the same details, so offers are easier to compare.",
+    icon: Store,
   },
   {
-    n: "03",
-    title: "We check the price",
-    body: "Every quote is checked against the real market rate for that exact model — and that it's genuine, not a copy.",
-    icon: ScanSearch,
+    title: "The price gets checked",
+    body: "MiddleMarket reviews each offer and adds a note when a price needs context.",
+    icon: ClipboardCheck,
   },
   {
-    n: "04",
-    title: "You pay the fair price",
-    body: "Accept the quote you like. We track it through to delivery.",
-    icon: Truck,
+    title: "Choose or walk away",
+    body: "Accept the reviewed offer that makes sense. Until then, you have not committed.",
+    icon: BadgeCheck,
   },
-];
+] as const;
+
+const REVIEW_POINTS = [
+  "Item match: model, quantity, condition, scope, and timing.",
+  "Price reviewed against comparable local options.",
+  "Buyer-visible price confirmed or adjusted before display.",
+  "A plain review note when the offer needs context.",
+] as const;
+
+const GOOD_FIT = [
+  "Specific products where model, condition, or warranty matters.",
+  "Services where scope and timing need to be quoted before you choose.",
+  "Purchases where you want another person to check whether the price is fair.",
+] as const;
+
+const NOT_YET = [
+  "Instant cart checkout for stocked products.",
+  "In-app payments and escrow.",
+  "Complex procurement with many separate line items.",
+] as const;
 
 export default function Home() {
   return (
-    <div>
-      {/* ─── Hero — the request box is the product's front door ─── */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-dots" aria-hidden="true" />
-        <div className="relative mx-auto max-w-3xl py-section text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium">
-            <ShieldCheck className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
-            Every price checked by a human before you see it
-          </div>
+    <div className="bg-background">
+      <section className="relative isolate overflow-hidden border-b border-border">
+        <Image
+          src="/assets/middlemarket-quote-counter.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="absolute inset-0 -z-20 object-cover object-center sm:object-right"
+        />
+        <div
+          className="absolute inset-0 -z-10 bg-background/84 sm:bg-gradient-to-r sm:from-background sm:via-background/78 sm:to-background/18"
+          aria-hidden="true"
+        />
 
-          <h1 className="mt-6 text-display font-semibold">
-            Know you didn&apos;t overpay
-          </h1>
-          <p className="mx-auto mt-4 max-w-prose text-lead text-muted-foreground">
-            Tell us what you want to buy in Addis. Verified shops send their best
-            price — and we check every one against the real market rate before it
-            reaches you.
-          </p>
-
-          {/* A plain GET form: works without JavaScript, and carries what the
-              buyer typed into the request they'll post after signing up. */}
-          <form
-            action="/register"
-            method="get"
-            role="search"
-            className="mx-auto mt-8 max-w-xl"
-          >
-            <input type="hidden" name="role" value="BUYER" />
-            <label htmlFor="need" className="sr-only">
-              What do you need?
-            </label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:rounded-lg sm:border sm:border-input sm:bg-card sm:p-1.5 sm:shadow-sm">
-              <div className="flex flex-1 items-center gap-2.5 rounded-md border border-input bg-card px-3.5 sm:border-0 sm:bg-transparent sm:px-2.5">
-                <Search
-                  className="h-4.5 w-4.5 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <input
-                  id="need"
-                  name="need"
-                  type="text"
-                  required
-                  maxLength={120}
-                  autoComplete="off"
-                  placeholder="What do you need? e.g. iPhone 15 128GB"
-                  className="h-12 w-full bg-transparent text-base placeholder:text-muted-foreground focus:outline-none sm:h-11"
-                />
-              </div>
-              <button
-                type="submit"
-                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-md bg-brand px-6 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90 sm:h-11"
-              >
-                Get free quotes
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </button>
+        <div className="relative mx-auto grid max-w-page gap-8 px-4 pt-7 pb-2 sm:px-6 sm:py-14 lg:min-h-[38rem] lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.75fr)] lg:items-center lg:gap-10 lg:py-16">
+          <div className="relative z-10 max-w-xl xl:max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-pill border border-border bg-card/85 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-xs backdrop-blur">
+              <ShieldCheck className="size-3.5 text-brand" aria-hidden="true" />
+              For buyers in Addis Ababa
             </div>
-          </form>
 
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-xs text-muted-foreground">Popular:</span>
-            {SUGGESTIONS.map((s) => (
-              <Link
-                key={s}
-                href={`/register?role=BUYER&need=${encodeURIComponent(s)}`}
-                className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-brand hover:text-foreground"
-              >
-                {s}
-              </Link>
-            ))}
+            <h1 className="mt-4 max-w-2xl font-display text-display font-semibold sm:text-hero">
+              Stop guessing if a shop price is fair.
+            </h1>
+
+            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+              Describe what you need once. Shops send prices. We review each
+              offer before you compare or accept.
+            </p>
+
+            <PublicRequestStarter
+              id="need"
+              label="Start with the item or service"
+              placeholder="Office chairs, iPhone, CCTV"
+              buttonLabel="Check prices"
+              className="mt-5 max-w-xl"
+            />
+
+            <p className="mt-3 text-xs font-medium text-muted-foreground">
+              Free to ask. Decide after review.
+            </p>
+
+            <div className="mt-4 rounded-xl border border-border bg-card/94 p-3 shadow-lg backdrop-blur lg:hidden">
+              <p className="text-xs font-semibold text-brand">
+                Reviewed price
+              </p>
+              <Money className="mt-1 block font-mono text-2xl font-semibold text-brand">
+                {formatMoney(HERO_PREVIEW.buyerVisible)}
+              </Money>
+              <p className="mt-2 font-semibold">{HERO_PREVIEW.item}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Seller quoted{" "}
+                <Money className="font-mono font-medium line-through">
+                  {formatMoney(HERO_PREVIEW.sellerOffer)}
+                </Money>
+                . {HERO_PREVIEW.note}
+              </p>
+            </div>
           </div>
 
-          <p className="mt-6 text-sm text-muted-foreground">
-            Free for buyers ·{" "}
-            <Link href="/register?role=SELLER" className="font-medium text-foreground underline underline-offset-4 hover:text-brand">
-              Selling instead?
-            </Link>
+          <div className="relative z-10 hidden rounded-card border border-border bg-card/94 p-6 shadow-xl backdrop-blur lg:block">
+            <p className="text-xs font-semibold text-brand">
+              Reviewed price example
+            </p>
+
+            <Money className="mt-4 block font-mono text-hero font-semibold text-brand">
+              {formatMoney(HERO_PREVIEW.buyerVisible)}
+            </Money>
+            <p className="mt-3 text-sm font-medium text-muted-foreground">
+              {HERO_PREVIEW.detail}
+            </p>
+
+            <div className="mt-6 flex items-center justify-between gap-4 border-t border-border pt-4">
+              <span className="text-sm text-muted-foreground">
+                Seller quote
+              </span>
+              <Money className="font-mono text-sm font-semibold text-muted-foreground line-through">
+                {formatMoney(HERO_PREVIEW.sellerOffer)}
+              </Money>
+            </div>
+
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">
+              {HERO_PREVIEW.note}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-page gap-10 px-4 pt-8 pb-section sm:px-6 sm:py-section lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+        <div>
+          <Eyebrow>How It Works</Eyebrow>
+          <h2 className="mt-3 max-w-xl font-display text-title font-semibold">
+            From one request to prices you can compare.
+          </h2>
+          <p className="mt-3 max-w-prose text-lead text-muted-foreground">
+            You keep the buying decision in one place: request details, seller
+            offers, review notes, and the final choice.
           </p>
         </div>
-      </section>
 
-      {/* ─── The mechanic, shown rather than described ───
-          Labelled as an illustration on purpose: these are not real
-          transaction figures and must never be presented as if they were. */}
-      <section className="border-t border-border py-20">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
-          <div>
-            <h2 className="text-title font-semibold">
-              The part other marketplaces don&apos;t do
-            </h2>
-            <p className="mt-3 max-w-prose text-muted-foreground">
-              Everywhere else, the price you&apos;re shown is the price the seller
-              chose. Here, a person checks it first — against what that exact
-              model actually costs, and whether it&apos;s genuine.
-            </p>
-            <ul className="mt-6 space-y-3">
-              {[
-                "Checked against the real rate for that exact model",
-                "Genuine, refurbished or used — stated, never blurred",
-                "Overpriced quotes are adjusted or rejected before you see them",
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-3 text-sm">
-                  <BadgeCheck
-                    className="mt-0.5 h-4.5 w-4.5 shrink-0 text-brand"
-                    aria-hidden="true"
-                  />
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <figure className="rounded-card border border-border bg-card p-6 shadow-sm">
-            <figcaption className="mb-5 flex items-center justify-between gap-3">
-              <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Illustration
+        <ol className="grid gap-3">
+          {STEPS.map((step, index) => (
+            <li
+              key={step.title}
+              className="grid gap-4 rounded-card border border-border bg-card p-4 shadow-sm sm:grid-cols-[2.75rem_1fr]"
+            >
+              <span className="grid size-11 place-items-center rounded-lg bg-muted text-muted-foreground">
+                <step.icon className="size-5" aria-hidden="true" />
               </span>
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-brand">
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                Price checked
-              </span>
-            </figcaption>
-
-            <p className="font-semibold">iPhone 15 128GB</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              New · sealed · verified shop
-            </p>
-
-            <dl className="mt-5 space-y-3 border-t border-border pt-5 text-sm">
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-muted-foreground">Shop asked</dt>
-                <dd className="font-mono tabular-nums text-muted-foreground line-through">
-                  ETB 62,000
-                </dd>
+              <div>
+                <p className="text-xs font-semibold text-brand">
+                  Step {index + 1}
+                </p>
+                <h3 className="mt-1 font-semibold">{step.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {step.body}
+                </p>
               </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-muted-foreground">Our adjustment</dt>
-                <dd className="font-mono tabular-nums text-brand">− ETB 7,500</dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
-                <dt className="font-medium">You pay</dt>
-                <dd className="font-mono text-title font-semibold tabular-nums">
-                  ETB 54,500
-                </dd>
-              </div>
-            </dl>
-
-            <p className="mt-5 rounded-md bg-brand-muted px-3 py-2.5 text-xs text-brand">
-              <span className="font-semibold">Why adjusted:</span> above the going
-              rate for this model in Addis. Seller agreed to the reviewed price.
-            </p>
-          </figure>
-        </div>
-      </section>
-
-      {/* ─── How it works ─── */}
-      <section className="border-t border-border py-20">
-        <h2 className="text-title font-semibold">How it works</h2>
-        <p className="mt-2 text-muted-foreground">
-          Four steps from asking to delivered.
-        </p>
-        <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s) => (
-            <li key={s.n}>
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
-                  <s.icon className="h-4.5 w-4.5 text-brand" aria-hidden="true" />
-                </span>
-                <span className="font-mono text-xs text-muted-foreground">
-                  {s.n}
-                </span>
-              </div>
-              <h3 className="mt-4 font-semibold">{s.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {s.body}
-              </p>
             </li>
           ))}
         </ol>
       </section>
 
-      {/* ─── Categories ─── */}
-      <section className="border-t border-border py-20">
-        <h2 className="text-title font-semibold">Start with electronics</h2>
-        <p className="mt-2 max-w-prose text-muted-foreground">
-          Where overpaying and fake goods hurt buyers in Addis the most. More
-          categories follow.
-        </p>
-        <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {CATEGORIES.map((c) => (
-            <li key={c.label}>
-              <Link
-                href={`/register?role=BUYER&need=${encodeURIComponent(c.label)}`}
-                className="flex flex-col items-center gap-2.5 rounded-card border border-border bg-card px-4 py-6 text-center transition-colors hover:border-brand"
-              >
-                <c.icon className="h-5 w-5 text-brand" aria-hidden="true" />
-                <span className="text-sm font-medium">{c.label}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <section className="border-y border-border bg-muted/50">
+        <div className="mx-auto grid max-w-page gap-8 px-4 py-section sm:px-6 lg:grid-cols-2 lg:items-start">
+          <div>
+            <Eyebrow>What Gets Reviewed</Eyebrow>
+            <h2 className="mt-3 font-display text-title font-semibold">
+              Every reviewed offer should make the price easier to trust.
+            </h2>
+            <ul className="mt-6 grid gap-3">
+              {REVIEW_POINTS.map((point) => (
+                <li key={point} className="flex gap-3 text-sm">
+                  <FileSearch
+                    className="mt-0.5 size-4 shrink-0 text-brand"
+                    aria-hidden="true"
+                  />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-      {/* ─── CTA ─── */}
-      <section className="border-t border-border">
-        <div className="my-12 rounded-card border border-border bg-card px-8 py-14 text-center">
-          <h2 className="text-title font-semibold">
-            Stop guessing what things should cost
-          </h2>
-          <p className="mx-auto mt-3 max-w-prose text-muted-foreground">
-            Post what you need — it&apos;s free, and you only decide once
-            you&apos;ve seen a checked price.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/register?role=BUYER"
-              className="group inline-flex h-11 items-center gap-2 rounded-md bg-brand px-6 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
-            >
-              Post a request
-              <ArrowRight
-                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                aria-hidden="true"
-              />
-            </Link>
-            <Link
-              href="/register?role=SELLER"
-              className="inline-flex h-11 items-center rounded-md border border-input px-6 text-sm font-medium transition-colors hover:bg-accent"
-            >
-              Sell on MiddleMarket
-            </Link>
+          <div className="rounded-card border border-border bg-card p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Example reviewed offer
+                </p>
+                <h3 className="mt-1 font-semibold">{REVIEW_EXAMPLE.item}</h3>
+              </div>
+              <Badge variant="outline">Reviewed</Badge>
+            </div>
+
+            <dl className="mt-5 grid gap-3 text-sm">
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-muted-foreground">Seller asked</dt>
+                <dd>
+                  <Money className="text-muted-foreground line-through">
+                    {formatMoney(REVIEW_EXAMPLE.sellerAsk)}
+                  </Money>
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="font-medium">Buyer sees</dt>
+                <dd>
+                  <Money className="text-metric font-semibold">
+                    {formatMoney(REVIEW_EXAMPLE.buyerPrice)}
+                  </Money>
+                </dd>
+              </div>
+            </dl>
+
+            <div className="mt-5 rounded-lg border border-brand-border bg-brand-muted p-3 text-sm text-brand">
+              <p className="font-medium">Marketplace note</p>
+              <p className="mt-1">{REVIEW_EXAMPLE.note}</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Footer ─── */}
-      <footer className="border-t border-border pb-8 pt-12">
-        <div className="mb-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand">
-                <Scale
-                  className="h-4 w-4 text-brand-foreground"
-                  strokeWidth={2.2}
+      <section className="mx-auto grid max-w-page gap-8 px-4 py-section sm:px-6 lg:grid-cols-2">
+        <div className="rounded-card border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-5 text-brand" aria-hidden="true" />
+            <h2 className="font-display text-title font-semibold">
+              Works best today
+            </h2>
+          </div>
+          <ul className="mt-5 grid gap-3 text-sm text-muted-foreground">
+            {GOOD_FIT.map((item) => (
+              <li key={item} className="flex gap-2.5">
+                <CheckCircle2
+                  className="mt-0.5 size-4 shrink-0 text-brand"
+                  aria-hidden="true"
                 />
-              </div>
-              <span className="font-bold">MiddleMarket</span>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              A mediated marketplace for Addis Ababa. We stand between you and a
-              bad price.
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-card border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <XCircle className="size-5 text-muted-foreground" aria-hidden="true" />
+            <h2 className="font-display text-title font-semibold">
+              Coming later
+            </h2>
+          </div>
+          <ul className="mt-5 grid gap-3 text-sm text-muted-foreground">
+            {NOT_YET.map((item) => (
+              <li key={item} className="flex gap-2.5">
+                <XCircle
+                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="border-y border-border bg-card">
+        <div className="mx-auto flex max-w-page flex-col gap-5 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <Eyebrow>For Shops</Eyebrow>
+            <h2 className="mt-2 font-display text-title font-semibold">
+              Quote buyers who already know what they need.
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              Sellers respond to specific requests, submit one clear price, and
+              track whether each offer is reviewed, declined, or accepted.
             </p>
           </div>
-          <div>
-            <h3 className="mb-3 text-sm font-semibold">For buyers</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/register?role=BUYER" className="hover:text-foreground">
-                  Post a request
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="hover:text-foreground">
-                  Log in
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="mb-3 text-sm font-semibold">For shops</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/register?role=SELLER" className="hover:text-foreground">
-                  Sell with us
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="hover:text-foreground">
-                  Log in
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="mb-3 text-sm font-semibold">How it works</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>Say what you need</li>
-              <li>Verified shops quote</li>
-              <li>We check the price</li>
-              <li>You pay the fair price</li>
-            </ul>
+          <Link
+            href="/register?role=SELLER"
+            className={buttonVariants({
+              variant: "outline",
+              size: "lg",
+              className: "self-start lg:self-auto",
+            })}
+          >
+            Start selling
+            <ArrowRight data-icon="inline-end" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-page px-4 py-section text-center sm:px-6">
+        <div className="mx-auto max-w-2xl">
+          <Eyebrow>Start With The Request</Eyebrow>
+          <h2 className="mt-3 font-display text-display font-semibold">
+            Ask once. Compare after review.
+          </h2>
+          <p className="mt-4 text-lead text-muted-foreground">
+            Describe the item or service clearly. You commit only after reviewed
+            offers come back.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/register?role=BUYER"
+              className={buttonVariants({
+                variant: "default",
+                size: "lg",
+                className: "w-full sm:w-auto",
+              })}
+            >
+              Post a request
+              <ArrowRight data-icon="inline-end" aria-hidden="true" />
+            </Link>
+            <Link
+              href="/login"
+              className={buttonVariants({
+                variant: "ghost",
+                size: "lg",
+                className: "w-full sm:w-auto",
+              })}
+            >
+              Log in
+            </Link>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-6 text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} MiddleMarket.</p>
-          <p>Addis Ababa, Ethiopia</p>
-        </div>
-      </footer>
+      </section>
     </div>
   );
 }

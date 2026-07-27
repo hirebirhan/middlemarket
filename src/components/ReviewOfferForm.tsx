@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
-import { Field, FieldSet } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/money";
+import { MoneyInput } from "@/components/MoneyInput";
+import { LoadingButton } from "@/components/LoadingButton";
 import { Alert } from "@/components/ui/alert";
+import { toast } from "@/components/ui/toast";
 
 export default function ReviewOfferForm({
   offerId,
@@ -24,6 +24,9 @@ export default function ReviewOfferForm({
   const [bandHigh, setBandHigh] = useState("");
   const [pending, setPending] = useState<"APPROVE" | "REJECT" | null>(null);
   const [error, setError] = useState("");
+  // The whole card leaves the queue on refresh; staying busy until then
+  // stops a second click landing on an offer that is already decided.
+  const [refreshing, startRefresh] = useTransition();
 
   const parsedPrice = adminPrice.trim() === "" ? null : Number(adminPrice);
   const priceIsValid =
@@ -37,23 +40,25 @@ export default function ReviewOfferForm({
 
     // Mirrors the server rule, so the admin finds out before the round trip.
     if (action === "REJECT" && !adminNote.trim()) {
-      setError("Tell the seller why this offer was rejected.");
+      setError(
+        "Add a note first — the shop only learns what to fix from what you write here."
+      );
       noteRef.current?.focus();
       return;
     }
     if (action === "APPROVE" && !priceIsValid) {
-      setError("Adjusted price must be greater than 0.");
+      setError("The adjusted price has to be greater than 0.");
       return;
     }
     if (
       (low !== null && (!Number.isFinite(low) || low <= 0)) ||
       (high !== null && (!Number.isFinite(high) || high <= 0))
     ) {
-      setError("Fair-price band values must be greater than 0.");
+      setError("Fair-price band values have to be greater than 0.");
       return;
     }
     if (low !== null && high !== null && low > high) {
-      setError("Fair-price band low must be ≤ high.");
+      setError("The band's low value has to be less than or equal to its high.");
       return;
     }
 
@@ -72,101 +77,134 @@ export default function ReviewOfferForm({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || "Could not save this review.");
+        setError(data.error || "We couldn't save this review. Please try again.");
+        setPending(null);
         return;
       }
-      router.refresh();
+      // Deliberately left pending: the card is about to leave the queue, and
+      // clearing it here would flash an idle, enabled form for the length of
+      // the refresh — long enough to click Approve a second time.
+      startRefresh(() => router.refresh());
+      // The card disappears from the queue on refresh, so this is the only
+      // record of which way the decision went.
+      toast.add(
+        action === "APPROVE"
+          ? {
+              type: "success",
+              title: "Offer approved",
+              description: parsedPrice
+                ? `The buyer will see ${formatMoney(parsedPrice)}.`
+                : `The buyer will see ${askingPrice}.`,
+            }
+          : {
+              type: "info",
+              title: "Offer declined",
+              description: "The shop can read your note and send a new price.",
+            }
+      );
     } catch {
-      setError("Could not reach the server.");
-    } finally {
+      setError("We couldn't reach the server. Check your connection.");
       setPending(null);
     }
   }
 
-  const busy = pending !== null;
+  const busy = pending !== null || refreshing;
 
   return (
-    <div className="space-y-4">
-      <FieldSet
-        label="Fair-price band"
-        hint="The benchmark range you're checking this offer against (Gate 3)."
-      >
-        <div className="flex items-center gap-2">
-          <Input
-            value={bandLow}
-            onChange={(e) => setBandLow(e.target.value)}
-            type="number"
-            min="0.01"
-            step="0.01"
-            inputMode="decimal"
-            placeholder="Low"
-            aria-label="Fair-price band low"
-          />
-          <span className="text-sm text-muted-foreground">–</span>
-          <Input
-            value={bandHigh}
-            onChange={(e) => setBandHigh(e.target.value)}
-            type="number"
-            min="0.01"
-            step="0.01"
-            inputMode="decimal"
-            placeholder="High"
-            aria-label="Fair-price band high"
-          />
+    <div className="space-y-2.5">
+      <div className="grid gap-3 sm:grid-cols-12 sm:items-end">
+        {/* Fair-price band */}
+        <div className="sm:col-span-4">
+          <label className="text-2xs font-medium text-muted-foreground block mb-1">
+            Fair-price band (Low – High)
+          </label>
+          <div className="flex items-center gap-1.5">
+            <MoneyInput
+              value={bandLow}
+              onChange={(e) => setBandLow(e.target.value)}
+              min="1"
+              step="1"
+              placeholder="Low"
+              aria-label="Fair-price band low"
+              className="h-9 text-xs"
+            />
+            <span className="text-xs text-muted-foreground" aria-hidden="true">
+              –
+            </span>
+            <MoneyInput
+              value={bandHigh}
+              onChange={(e) => setBandHigh(e.target.value)}
+              min="1"
+              step="1"
+              placeholder="High"
+              aria-label="Fair-price band high"
+              className="h-9 text-xs"
+            />
+          </div>
         </div>
-      </FieldSet>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          label="Adjusted price"
-          optional
-          hint={
-            priceIsValid && parsedPrice
-              ? `Buyer sees $${parsedPrice.toFixed(2)} instead of $${askingPrice}.`
-              : `Leave empty to approve at $${askingPrice}.`
-          }
-        >
-          <Input
+        {/* Adjusted price */}
+        <div className="sm:col-span-3">
+          <label className="text-2xs font-medium text-muted-foreground block mb-1">
+            Adjusted price
+            {priceIsValid && parsedPrice && (
+              <span className="ml-1 text-brand font-mono">
+                ({formatMoney(parsedPrice)})
+              </span>
+            )}
+          </label>
+          <MoneyInput
             value={adminPrice}
             onChange={(e) => setAdminPrice(e.target.value)}
-            type="number"
-            min="0.01"
-            step="0.01"
-            inputMode="decimal"
-            placeholder="450.00"
+            min="1"
+            step="1"
+            placeholder={askingPrice ? `Default: ${askingPrice}` : "Price"}
+            className="h-9 text-xs"
           />
-        </Field>
+        </div>
 
-        <Field
-          label="Note to buyer & seller"
-          hint="Required when rejecting."
-        >
-          <Textarea
-            ref={noteRef}
+        {/* Note to buyer & shop */}
+        <div className="sm:col-span-5">
+          <label className="text-2xs font-medium text-muted-foreground block mb-1">
+            Note (Required to decline)
+          </label>
+          <input
+            ref={noteRef as unknown as React.RefObject<HTMLInputElement>}
+            type="text"
             value={adminNote}
             onChange={(e) => setAdminNote(e.target.value)}
-            rows={2}
-            className="min-h-10"
-            placeholder="Why this price was adjusted or rejected"
+            className="h-9 w-full rounded-md border border-input bg-card px-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            placeholder="Review note or decline reason"
           />
-        </Field>
+        </div>
       </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <Alert variant="destructive" className="py-1.5 text-xs">{error}</Alert>}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button disabled={busy} onClick={() => review("APPROVE")}>
-          <Check className="h-4 w-4" aria-hidden="true" />
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <LoadingButton
+          size="sm"
+          disabled={busy}
+          loading={pending === "APPROVE"}
+          onClick={() => review("APPROVE")}
+          className="h-8 text-xs"
+        >
+          {pending !== "APPROVE" && (
+            <Check className="size-3.5" aria-hidden="true" />
+          )}
           {pending === "APPROVE" ? "Approving…" : "Approve offer"}
-        </Button>
-        <Button
+        </LoadingButton>
+        <LoadingButton
+          size="sm"
           variant="destructive"
           disabled={busy}
+          loading={pending === "REJECT"}
           onClick={() => review("REJECT")}
+          className="h-8 text-xs"
         >
-          <X className="h-4 w-4" aria-hidden="true" />
-          {pending === "REJECT" ? "Rejecting…" : "Reject"}
-        </Button>
+          {pending !== "REJECT" && <X className="size-3.5" aria-hidden="true" />}
+          {pending === "REJECT" ? "Declining…" : "Decline"}
+        </LoadingButton>
       </div>
     </div>
   );

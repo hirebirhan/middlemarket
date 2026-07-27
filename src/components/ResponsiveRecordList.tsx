@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
  *
  * Below `md` every row becomes a stack of label/value pairs; at `md` and up the
  * shared column template kicks in and the header row appears. The template
- * lives in a CSS custom property so the header and every row stay in sync
- * without repeating an arbitrary Tailwind class in three places.
+ * lives in a CSS custom property, applied through the `.record-grid` utility,
+ * so the header and every row stay in sync from a single declaration — and
+ * without an arbitrary `[grid-template-columns:…]` class repeated in two places.
  */
 
 type Column = { label: string; align?: "left" | "right" };
@@ -28,11 +29,11 @@ export function RecordList({
     <div
       style={{ "--record-cols": template } as React.CSSProperties}
       className={cn(
-        "overflow-hidden rounded-card border border-border",
+        "overflow-hidden rounded-card border border-border bg-card",
         className
       )}
     >
-      <div className="hidden gap-4 bg-muted/60 px-5 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid md:[grid-template-columns:var(--record-cols)]">
+      <div className="record-grid hidden gap-4 border-b border-border bg-muted px-5 py-2.5 text-label font-medium text-muted-foreground md:grid">
         {columns.map((column) => (
           <span
             key={column.label}
@@ -57,9 +58,14 @@ export function RecordRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-2 border-t border-border px-5 py-4 text-sm transition-colors",
-        "md:gap-4 md:[grid-template-columns:var(--record-cols)] md:items-center",
-        "hover:bg-accent/50",
+        // Stacked on mobile: a row of key/value pairs with room to breathe.
+        "grid grid-cols-1 gap-2.5 px-5 py-4 text-sm",
+        // Tabular from md up.
+        "record-grid md:items-center md:gap-4",
+        // The divider lives on the row, not between rows, so a list stays
+        // aligned no matter which row is first after a filter.
+        "border-t border-border first:border-t-0",
+        "transition-colors duration-150 ease-soft hover:bg-accent",
         className
       )}
     >
@@ -89,7 +95,7 @@ export function RecordCell({
       )}
     >
       {label && (
-        <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground md:hidden">
+        <span className="shrink-0 text-xs text-muted-foreground md:hidden">
           {label}
         </span>
       )}

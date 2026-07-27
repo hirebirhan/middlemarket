@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser, AuthError } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
+import { ApiError, handleApiError } from "@/lib/api";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
     const user = await requireUser("BUYER");
@@ -10,11 +14,19 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       include: { request: true },
     });
-    if (!offer || offer.status !== "APPROVED") {
-      return NextResponse.json({ error: "Offer not approved" }, { status: 400 });
-    }
+    if (!offer) throw new ApiError(404, "That offer no longer exists.");
+    // Ownership is checked before status, so the response to someone else's
+    // offer id is the same whatever state it happens to be in.
     if (offer.request.buyerId !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      throw new ApiError(403, "That offer isn't on one of your requests.");
+    }
+    if (offer.status !== "APPROVED") {
+      throw new ApiError(
+        409,
+        offer.status === "ACCEPTED"
+          ? "You have already accepted this offer."
+          : "This offer is no longer available to accept."
+      );
     }
 
     const order = await prisma.$transaction(async (tx) => {
@@ -50,15 +62,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     });
 
     if (!order) {
-      return NextResponse.json(
-        { error: "This request already has an accepted offer." },
-        { status: 409 }
-      );
+      throw new ApiError(409, "This request already has an accepted offer.");
     }
 
     return NextResponse.json(order);
   } catch (e) {
-    if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: e.status });
-    throw e;
+    return handleApiError(e);
   }
 }

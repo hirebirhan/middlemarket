@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -10,11 +11,16 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Field, FieldSet } from "@/components/ui/field";
+import { LabeledField, LabeledFieldSet } from "@/components/LabeledField";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/LoadingButton";
 import { Alert } from "@/components/ui/alert";
 import { Segmented } from "@/components/ui/segmented";
+import { toast } from "@/components/ui/toast";
+import { Container } from "@/components/Container";
+import { getRoleHome } from "@/lib/role-home";
+import { readRequestIntentType } from "@/lib/request-intent";
+import type { Role as UserRole } from "@prisma/client";
 
 const ROLES = [
   { value: "BUYER", label: "Buy" },
@@ -22,9 +28,10 @@ const ROLES = [
 ] as const;
 
 type Role = (typeof ROLES)[number]["value"];
+type AuthUser = { name: string; role: UserRole };
 
 const ROLE_HINT: Record<Role, string> = {
-  BUYER: "Post what you need and let sellers compete for it.",
+  BUYER: "Post what you need and let shops compete for it. Always free.",
   SELLER: "Browse buyer requests and bid with your best price.",
 };
 
@@ -42,6 +49,9 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   // What the visitor typed into the landing-page request box. Carried through
   // signup so the search box is a real starting point, not a decorative one.
   const need = isRegister ? params.get("need")?.trim() : null;
+  const requestType = isRegister
+    ? readRequestIntentType(params.get("type"))
+    : undefined;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -72,44 +82,49 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         return;
       }
 
-      const user = await res.json();
-      const buyerHome =
-        need && user.role === "BUYER"
-          ? `/buyer?need=${encodeURIComponent(need)}`
-          : "/buyer";
-      router.push(
-        user.role === "ADMIN"
-          ? "/admin"
-          : user.role === "SELLER"
-            ? "/seller"
-            : buyerHome
-      );
+      const user = (await res.json()) as AuthUser;
+      router.push(getRoleHome(user.role, { buyerNeed: need, requestType }));
       router.refresh();
+      toast.add({
+        type: "success",
+        title: isRegister
+          ? `Welcome to MiddleMarket, ${user.name.split(" ")[0]}`
+          : `Welcome back, ${user.name.split(" ")[0]}`,
+      });
     } catch {
-      setError("Could not reach the server. Check your connection.");
+      setError(
+        "We couldn't reach the server. Check your connection and try again."
+      );
       setLoading(false);
     }
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col justify-center py-10 min-h-screen sm:py-16">
+    // The page sits inside the layout's <main>, which already supplies the
+    // header, footer and vertical padding — the old `min-h-screen` here added a
+    // second full viewport and pushed the footer far below the fold.
+    <Container size="narrow" className="flex max-w-md flex-col justify-center">
       <Card>
         <CardHeader>
-          <CardTitle className="text-heading">
+          {/* The page's h1 — this card is the entire screen. */}
+          <CardTitle className="text-title">
             {isRegister ? "Create your account" : "Welcome back"}
           </CardTitle>
           <CardDescription>
             {isRegister
-              ? "Every price on MiddleMarket is reviewed before it reaches a buyer."
+              ? "It takes a minute, and posting a request is always free."
               : "Log in to pick up where you left off."}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
           {need && (
-            <div className="rounded-md border border-border bg-secondary px-3 py-2.5">
-              <p className="text-xs text-muted-foreground">You&apos;re looking for</p>
-              <p className="mt-0.5 text-sm font-medium">{need}</p>
+            <div className="rounded-lg border border-brand-border/60 bg-brand-muted px-3.5 py-3">
+              <p className="text-xs text-brand">You&apos;re looking for</p>
+              <p className="mt-0.5 font-medium">{need}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                We&apos;ll carry this straight through to your first request.
+              </p>
             </div>
           )}
 
@@ -120,34 +135,34 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
           <form
             onSubmit={onSubmit}
             method="post"
-            className="space-y-4"
+            className="space-y-5"
             noValidate={false}
           >
             {/* The role decision shapes the whole account, so it leads the
                 form rather than sitting buried between name and email. */}
             {isRegister && (
-              <FieldSet label="I want to" hint={ROLE_HINT[role]}>
+              <LabeledFieldSet label="I want to" hint={ROLE_HINT[role]}>
                 <Segmented
                   label="Account type"
                   value={role}
                   onChange={setRole}
                   options={ROLES}
                 />
-              </FieldSet>
+              </LabeledFieldSet>
             )}
 
             {isRegister && (
-              <Field label="Full name">
+              <LabeledField label="Full name">
                 <Input
                   name="name"
                   required
                   autoComplete="name"
                   placeholder="Ada Lovelace"
                 />
-              </Field>
+              </LabeledField>
             )}
 
-            <Field label="Email">
+            <LabeledField label="Email">
               <Input
                 name="email"
                 type="email"
@@ -155,9 +170,9 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
                 autoComplete="email"
                 placeholder="you@example.com"
               />
-            </Field>
+            </LabeledField>
 
-            <Field
+            <LabeledField
               label="Password"
               hint={isRegister ? "At least 6 characters." : undefined}
             >
@@ -169,35 +184,45 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
                 autoComplete={isRegister ? "new-password" : "current-password"}
                 placeholder="••••••••"
               />
-            </Field>
+            </LabeledField>
 
-            {error && <Alert variant="danger">{error}</Alert>}
+            {error && <Alert variant="destructive">{error}</Alert>}
 
-            <Button
+            {/* Ink, not brand green: signing in is not a money action, and the
+                green fill is reserved for the ones that are. */}
+            <LoadingButton
               type="submit"
               size="lg"
-              disabled={loading}
+              loading={loading}
               className="w-full"
             >
               {loading
-                ? "Please wait…"
+                ? "One moment…"
                 : isRegister
-                  ? `Create ${role === "SELLER" ? "seller" : "buyer"} account`
+                  ? `Create ${role === "SELLER" ? "shop" : "buyer"} account`
                   : "Log in"}
-            </Button>
+            </LoadingButton>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
             {isRegister ? "Already have an account? " : "New to MiddleMarket? "}
             <Link
               href={isRegister ? "/login" : "/register"}
-              className="font-medium text-foreground underline underline-offset-4 hover:no-underline"
+              className="rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-current"
             >
               {isRegister ? "Log in" : "Create an account"}
             </Link>
           </p>
         </CardContent>
       </Card>
-    </div>
+
+      {isRegister && (
+        <p className="mt-5 flex items-start justify-center gap-2 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+          Every price on MiddleMarket is checked by a person before a buyer
+          sees it.
+        </p>
+      )}
+    </Container>
   );
 }

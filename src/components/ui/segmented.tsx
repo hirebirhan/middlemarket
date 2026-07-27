@@ -56,7 +56,7 @@ export function Segmented<T extends string>({
       aria-label={label}
       onKeyDown={onKeyDown}
       className={cn(
-        "inline-grid w-full gap-1 rounded-lg border border-input bg-muted p-1",
+        "inline-grid w-full gap-1 rounded-xl border border-input bg-muted p-1",
         className
       )}
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
@@ -75,12 +75,13 @@ export function Segmented<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             className={cn(
-              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              // 44px tap target on touch devices
+              "rounded-lg px-3 py-2 text-sm font-medium",
+              "transition duration-150 ease-soft",
+              // 40px tap target
               "min-h-10",
               selected
                 ? "bg-raised text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
             )}
           >
             {option.label}

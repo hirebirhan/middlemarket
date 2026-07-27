@@ -1,45 +1,76 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { AlertCircle, CheckCircle2, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "flex items-start gap-2.5 rounded-md border px-3 py-2.5 text-sm",
+  "group/alert relative grid w-full gap-0.5 rounded-lg border px-4 py-3 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        danger: "border-danger-foreground/25 bg-danger text-danger-foreground",
-        success:
-          "border-success-foreground/25 bg-success text-success-foreground",
-        info: "border-info-foreground/25 bg-info text-info-foreground",
+        default: "bg-card text-card-foreground",
+        destructive:
+          "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
       },
     },
-    defaultVariants: { variant: "info" },
+    defaultVariants: {
+      variant: "default",
+    },
   }
-);
+)
 
-const ICONS = {
-  danger: AlertCircle,
-  success: CheckCircle2,
-  info: Info,
-} as const;
-
-export function Alert({
-  variant = "info",
+function Alert({
   className,
-  children,
+  variant,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>) {
-  const Icon = ICONS[variant ?? "info"];
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
   return (
     <div
-      // Errors must be announced; informational text should not interrupt.
-      role={variant === "danger" ? "alert" : "status"}
+      data-slot="alert"
+      role="alert"
       className={cn(alertVariants({ variant }), className)}
       {...props}
-    >
-      <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
+    />
+  )
 }
+
+function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-title"
+      className={cn(
+        "font-medium group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-description"
+      className={cn(
+        "text-sm text-balance text-muted-foreground md:text-pretty [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-action"
+      className={cn("absolute top-2.5 right-3", className)}
+      {...props}
+    />
+  )
+}
+
+export { Alert, AlertTitle, AlertDescription, AlertAction }

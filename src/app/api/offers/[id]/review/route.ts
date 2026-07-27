@@ -1,75 +1,73 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser, AuthError } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
+import {
+  ApiError,
+  handleApiError,
+  optionalAmount,
+  optionalText,
+  readJson,
+  requireEnum,
+} from "@/lib/api";
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+const ACTIONS = ["APPROVE", "REJECT"] as const;
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
     await requireUser("ADMIN");
-    const { action, adminPrice, adminNote, bandLow, bandHigh } = await req.json();
+    const body = await readJson(req);
 
-    if (action !== "APPROVE" && action !== "REJECT") {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-    }
-
-    const note = typeof adminNote === "string" ? adminNote.trim() : "";
+    const action = requireEnum(body.action, ACTIONS, "Action");
+    const note = optionalText(body.adminNote, "Note", { max: 2000 });
 
     // A rejection the seller cannot understand is a dead end for them — the
     // offer just disappears with no way to learn what to fix.
     if (action === "REJECT" && !note) {
-      return NextResponse.json(
-        { error: "Tell the seller why this offer was rejected." },
-        { status: 400 }
-      );
-    }
-
-    let price: number | null = null;
-    if (action === "APPROVE" && adminPrice !== null && adminPrice !== undefined) {
-      price = Number(adminPrice);
-      if (!Number.isFinite(price) || price <= 0) {
-        return NextResponse.json(
-          { error: "Adjusted price must be greater than 0." },
-          { status: 400 }
-        );
-      }
-    }
-
-    // The fair-price band the admin benchmarked against (Gate 3). Recorded on
-    // both approve and reject — a rejection above the band is signal too.
-    const parseBand = (v: unknown): number | null => {
-      if (v === null || v === undefined || v === "") return null;
-      const n = Number(v);
-      return Number.isFinite(n) && n > 0 ? n : null;
-    };
-    const low = parseBand(bandLow);
-    const high = parseBand(bandHigh);
-    if (low !== null && high !== null && low > high) {
-      return NextResponse.json(
-        { error: "Fair-price band low must be ≤ high." },
-        { status: 400 }
-      );
-    }
-
-    const offer = await prisma.offer.findUnique({ where: { id } });
-    if (!offer || offer.status !== "PENDING_REVIEW") {
-      return NextResponse.json({ error: "Offer not pending review" }, { status: 400 });
+      throw new ApiError(400, "Tell the seller why this offer was rejected.");
     }
 
     // An adjusted price is only meaningful on an approval; storing one on a
     // rejected offer leaves a price nobody can act on.
-    const updated = await prisma.offer.update({
-      where: { id },
+    const adminPrice =
+      action === "APPROVE"
+        ? optionalAmount(body.adminPrice, "Adjusted price")
+        : null;
+
+    // The fair-price band the admin benchmarked against (Gate 3). Recorded on
+    // both approve and reject — a rejection above the band is signal too.
+    const bandLow = optionalAmount(body.bandLow, "Fair-price band low");
+    const bandHigh = optionalAmount(body.bandHigh, "Fair-price band high");
+    if (bandLow !== null && bandHigh !== null && bandLow > bandHigh) {
+      throw new ApiError(400, "Fair-price band low must be ≤ high.");
+    }
+
+    // Conditional update: the status check and the write are one statement, so
+    // two admins reviewing the same offer cannot both succeed.
+    const claimed = await prisma.offer.updateMany({
+      where: { id, status: "PENDING_REVIEW" },
       data: {
         status: action === "APPROVE" ? "APPROVED" : "REJECTED",
-        adminPrice: price,
-        adminNote: note || null,
-        bandLow: low,
-        bandHigh: high,
+        adminPrice,
+        adminNote: note,
+        bandLow,
+        bandHigh,
       },
     });
+
+    if (claimed.count === 0) {
+      const exists = await prisma.offer.findUnique({ where: { id } });
+      throw exists
+        ? new ApiError(409, "This offer has already been reviewed.")
+        : new ApiError(404, "That offer no longer exists.");
+    }
+
+    const updated = await prisma.offer.findUnique({ where: { id } });
     return NextResponse.json(updated);
   } catch (e) {
-    if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: e.status });
-    throw e;
+    return handleApiError(e);
   }
 }

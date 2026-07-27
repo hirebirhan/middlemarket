@@ -1,0 +1,4 @@
+interface:
+  display_name: "MiddleMarket UI Review"
+  short_description: "Enterprise UI quality gates for MiddleMarket"
+  default_prompt: "Use $middlemarket-ui-review to review this MiddleMarket screen against enterprise production UI gates before changing it."
