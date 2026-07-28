@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2, SearchX, ArrowRight } from "lucide-react";
+import { CheckCircle2, Clock, SearchX, ArrowRight } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/money";
+import { ageInDays, formatPostedAge } from "@/lib/time";
 import {
   PAGE_SIZE,
   PARAM,
@@ -21,7 +22,6 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/Container";
 import { PageHeader, Money } from "@/components/Typography";
-import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Review queue",
@@ -120,15 +120,13 @@ export default async function ReviewQueuePage({
           />
         )
       ) : (
-        <div className="space-y-3">
+        <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
           {offers.map((offer) => {
             const asked = formatMoney(offer.price);
             const budget = formatMoney(offer.request.budget);
+            const waitingDays = ageInDays(offer.createdAt);
             return (
-              <Card
-                key={offer.id}
-                className="overflow-hidden border-border bg-card shadow-xs transition-shadow hover:shadow-md"
-              >
+              <div key={offer.id}>
                 {/* Header & Meta Row */}
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 p-3.5 sm:px-4 sm:py-3 bg-secondary/20">
                   <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -141,6 +139,20 @@ export default async function ReviewQueuePage({
                       </Badge>
                     )}
                     <StatusBadge value={offer.request.type} />
+
+                    {/* How long the shop has been waiting on a decision —
+                        the queue is oldest-first, and age is what makes
+                        "oldest" feel urgent rather than arbitrary. */}
+                    <span
+                      className={
+                        waitingDays >= 2
+                          ? "inline-flex items-center gap-1 rounded-pill bg-warning px-2 py-0.5 text-2xs font-semibold text-warning-foreground"
+                          : "inline-flex items-center gap-1 rounded-pill bg-secondary px-2 py-0.5 text-2xs font-medium text-secondary-foreground"
+                      }
+                    >
+                      <Clock className="size-3" aria-hidden="true" />
+                      Waiting {formatPostedAge(offer.createdAt)}
+                    </span>
 
                     {/* Trade Identity */}
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -197,7 +209,7 @@ export default async function ReviewQueuePage({
                 <div className="border-t border-border p-3 sm:p-4">
                   <ReviewOfferForm offerId={offer.id} askingPrice={asked ?? ""} />
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>

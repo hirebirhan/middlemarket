@@ -198,7 +198,7 @@ export default async function SellerPage({
               />
             )
           ) : (
-            <div className="grid items-stretch gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+            <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
               {openRequests.map((request) => {
                 const latest = request.offers[0];
                 const live = request.offers.find((o) =>

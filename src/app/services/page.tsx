@@ -46,6 +46,13 @@ export default function ServicesPage() {
         "In-app payment, escrow, or dispute workflows.",
         "Jobs that need provider ratings or verification data the app does not store yet.",
       ]}
+      example={{
+        title: "Office AC service",
+        detail: "2 split units · cleaning and gas check · Kazanchis",
+        sellerAsk: 9500,
+        reviewed: 8200,
+        note: "Matched to the going rate for a two-unit service visit.",
+      }}
     />
   );
 }

@@ -75,7 +75,7 @@ export const viewport: Viewport = {
   // The sRGB equivalents of `--background` in each theme, so the mobile
   // browser chrome continues the page rather than framing it.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbfaf8" },
+    { media: "(prefers-color-scheme: light)", color: "#f1f1ef" },
     { media: "(prefers-color-scheme: dark)", color: "#161412" },
   ],
 };
@@ -104,7 +104,7 @@ export default async function RootLayout({
 
             {/* Sits below the toast layer (z-50) so a confirmation is never
                 covered by the thing it is confirming. */}
-            <SiteHeader user={user} home={home} />
+            <SiteHeader user={user} />
 
             {/* No container here on purpose — see `Container`. The admin
                 console needs its rail to reach the viewport edge, which is

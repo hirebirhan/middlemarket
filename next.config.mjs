@@ -4,6 +4,7 @@ const nextConfig = {
   // host name. Without it Next blocks the cross-origin dev requests and the
   // client runtime never hydrates.
   allowedDevOrigins: ["host.docker.internal"],
+  output: "standalone",
 };
 
 export default nextConfig;

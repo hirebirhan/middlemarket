@@ -3,9 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Inbox,
-  Clock,
-  Package,
-  PiggyBank,
   Plus,
   SearchX,
 } from "lucide-react";
@@ -13,6 +10,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
+import { formatPostedAge } from "@/lib/time";
 import {
   PAGE_SIZE,
   PARAM,
@@ -24,7 +22,6 @@ import {
 } from "@/lib/list-params";
 import StatusBadge from "@/components/StatusBadge";
 import { SearchField } from "@/components/SearchField";
-import { StatGrid, MetricHero } from "@/components/StatCard";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { FilterTabs } from "@/components/FilterTabs";
@@ -175,79 +172,48 @@ export default async function BuyerPage({
         }
       />
 
-      <div className="flex flex-col gap-8 lg:flex-row">
-        <aside className="space-y-4 lg:w-72 lg:shrink-0">
-          <MetricHero
-            label="Saved by mediation"
-            value={formatMoney(savedTotal) ?? "—"}
-            icon={PiggyBank}
-            hint={
-              savedOn > 0
-                ? `Across ${savedOn} order${savedOn === 1 ? "" : "s"} where our review brought the price down.`
-                : "Once you accept a reviewed offer, what we saved you shows up here."
+      {/* Flat stat strip: the numbers a buyer checks first, in decision
+          order. Hairline cells, not tiles — this is a console, not a
+          marketing dashboard. */}
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border lg:grid-cols-4">
+        <div className="bg-card p-4">
+          <dt className="text-xs text-muted-foreground">To decide</dt>
+          <dd
+            className={
+              awaitingDecision.length > 0
+                ? "mt-1 text-xl font-semibold tabular-nums text-warning-foreground"
+                : "mt-1 text-xl font-semibold tabular-nums"
             }
-            footer={
-              pendingSaving > 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  <Money className="font-semibold text-foreground">
-                    {formatMoney(pendingSaving)}
-                  </Money>{" "}
-                  more is waiting on offers you haven&apos;t decided on yet.
-                </p>
-              ) : null
-            }
-          />
+          >
+            {awaitingDecision.length}
+          </dd>
+        </div>
+        <div className="bg-card p-4">
+          <dt className="text-xs text-muted-foreground">Active orders</dt>
+          <dd className="mt-1 text-xl font-semibold tabular-nums">
+            {activeOrders.length}
+          </dd>
+        </div>
+        <div className="bg-card p-4">
+          <dt className="text-xs text-muted-foreground">Requests posted</dt>
+          <dd className="mt-1 text-xl font-semibold tabular-nums">
+            {allRequestTotal}
+          </dd>
+        </div>
+        <div className="bg-card p-4">
+          <dt className="text-xs text-muted-foreground">Saved by mediation</dt>
+          <dd className="mt-1 font-mono text-xl font-semibold tabular-nums text-brand">
+            {formatMoney(savedTotal) ?? "—"}
+          </dd>
+          {pendingSaving > 0 && (
+            <dd className="mt-1 text-xs text-muted-foreground">
+              {formatMoney(pendingSaving)} more awaiting your decision
+            </dd>
+          )}
+        </div>
+      </dl>
 
-          {/* Each tile now lands on the view it counts. They all pointed at the
-              same `#requests` anchor before, so "3 to decide" dropped you at
-              the top of an unfiltered list to go and find them yourself. */}
-          <StatGrid
-            stats={[
-              {
-                label: "Requests",
-                value: allRequestTotal,
-                icon: Inbox,
-                href: "/buyer#requests",
-              },
-              {
-                label: "To decide",
-                value: awaitingDecision.length,
-                icon: Clock,
-                href: "/buyer?requests=deciding#requests",
-                tone: awaitingDecision.length ? "warning" : "neutral",
-              },
-              {
-                label: "Active orders",
-                value: activeOrders.length,
-                icon: Package,
-                href: "/buyer?requests=ordered#requests",
-                tone: activeOrders.length ? "success" : "neutral",
-              },
-            ]}
-            // Three tiles across a 288px sidebar squeezed the labels to a single
-            // letter; full width in the sidebar, three across only when there's room.
-            className="grid-cols-1 sm:grid-cols-3 lg:grid-cols-1"
-          />
-          <div className="rounded-card border border-border bg-card p-4 shadow-sm">
-            <p className="font-medium">Need something else?</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Start a focused request flow so shops can quote the right thing.
-            </p>
-            <Link
-              href="/buyer/new"
-              className={buttonVariants({
-                variant: "outline",
-                size: "sm",
-                className: "mt-4 w-full",
-              })}
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              New request
-            </Link>
-          </div>
-        </aside>
-
-        <section id="requests" className="min-w-0 flex-1 scroll-mt-24">
+      <section id="requests" className="scroll-mt-24">
           <SectionHeader
             title="Your requests"
             description="Only offers our team has already checked appear here."
@@ -321,15 +287,12 @@ export default async function BuyerPage({
               />
             )
           ) : (
-            <div className="space-y-5">
+            <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
               {requests.map((request) => {
                 const budget = formatMoney(request.budget);
                 return (
-                  <article
-                    key={request.id}
-                    className="overflow-hidden rounded-card border border-border bg-card shadow-sm"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 p-5">
+                  <article key={request.id}>
+                    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 p-4 sm:p-5">
                       <div className="min-w-0">
                         <h3 className="font-semibold">{request.title}</h3>
                         {request.sku && (
@@ -347,7 +310,7 @@ export default async function BuyerPage({
                             </span>
                           )}
                           <time dateTime={request.createdAt.toISOString()}>
-                            Posted {request.createdAt.toLocaleDateString()}
+                            Posted {formatPostedAge(request.createdAt)}
                           </time>
                         </div>
                       </div>
@@ -358,7 +321,7 @@ export default async function BuyerPage({
                     </div>
 
                     {request.offers.length === 0 ? (
-                      <p className="border-t border-border bg-muted px-5 py-4 text-sm text-muted-foreground">
+                      <p className="border-t border-border bg-muted/60 px-4 py-3.5 text-sm text-muted-foreground sm:px-5">
                         {request.status === "OPEN"
                           ? "No checked offers yet. Shops are still responding — we'll list them here as soon as our team has been through the price."
                           : "This request is closed."}
@@ -383,8 +346,7 @@ export default async function BuyerPage({
             pageKey="page"
             label="requests"
           />
-        </section>
-      </div>
+      </section>
     </Container>
   );
 }

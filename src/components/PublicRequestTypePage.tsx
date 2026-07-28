@@ -8,16 +8,28 @@ import {
   Search,
   ShieldCheck,
   Store,
+  TrendingDown,
   XCircle,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { Eyebrow } from "@/components/Typography";
+import { Badge } from "@/components/ui/badge";
+import { PlatformActivity } from "@/components/PlatformActivity";
+import { Eyebrow, Money } from "@/components/Typography";
+import { formatMoney } from "@/lib/money";
 import type { RequestIntentType } from "@/lib/request-intent";
 
 type Detail = {
   title: string;
   body: string;
   icon: LucideIcon;
+};
+
+type ExampleOffer = {
+  title: string;
+  detail: string;
+  sellerAsk: number;
+  reviewed: number;
+  note: string;
 };
 
 type PublicRequestTypePageProps = {
@@ -32,6 +44,7 @@ type PublicRequestTypePageProps = {
   includeItems: Detail[];
   bestFor: string[];
   notFor: string[];
+  example: ExampleOffer;
 };
 
 const FLOW = [
@@ -64,12 +77,18 @@ export function PublicRequestTypePage({
   includeItems,
   bestFor,
   notFor,
+  example,
 }: PublicRequestTypePageProps) {
   const buyerHref = `/register?role=BUYER&type=${type}`;
+  const exampleSaved = example.sellerAsk - example.reviewed;
+  const reviewedBarWidth = Math.round(
+    (example.reviewed / example.sellerAsk) * 100
+  );
 
   return (
-    <div className="bg-background">
-      <section className="relative isolate overflow-hidden border-b border-border">
+    <div>
+      {/* ── Hero: one CTA, flat receipt example on desktop. ── */}
+      <section className="relative isolate overflow-hidden border-b border-border bg-card">
         <Image
           src="/assets/middlemarket-quote-counter.png"
           alt=""
@@ -79,14 +98,14 @@ export function PublicRequestTypePage({
           className="absolute inset-0 -z-20 object-cover object-center sm:object-right"
         />
         <div
-          className="absolute inset-0 -z-10 bg-background/88 sm:bg-gradient-to-r sm:from-background sm:via-background/82 sm:to-background/24"
+          className="absolute inset-0 -z-10 bg-card/88 sm:bg-gradient-to-r sm:from-card sm:via-card/82 sm:to-card/24"
           aria-hidden="true"
         />
 
-        <div className="mx-auto flex min-h-[28rem] max-w-page items-center px-4 py-12 sm:px-6 sm:py-16 lg:min-h-[31rem]">
+        <div className="mx-auto grid max-w-page items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.62fr)]">
           <div className="max-w-3xl">
             <Eyebrow>{eyebrow}</Eyebrow>
-            <h1 className="mt-3 font-display text-hero font-semibold">
+            <h1 className="mt-3 font-display text-display font-semibold sm:text-hero">
               {title}
             </h1>
             <p className="mt-3 max-w-2xl text-title font-semibold leading-snug">
@@ -102,7 +121,7 @@ export function PublicRequestTypePage({
                 className={buttonVariants({
                   variant: "default",
                   size: "lg",
-                  className: "h-12 w-full rounded-lg px-5 sm:w-auto",
+                  className: "h-12 w-full px-5 sm:w-auto",
                 })}
               >
                 {ctaLabel}
@@ -113,74 +132,134 @@ export function PublicRequestTypePage({
               </p>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-card/80 px-3 py-1.5">
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
                 <ShieldCheck className="size-3.5 text-brand" aria-hidden="true" />
                 Price reviewed before comparison
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-card/80 px-3 py-1.5">
+              <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="size-3.5 text-brand" aria-hidden="true" />
                 Free to ask
               </span>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="mx-auto grid max-w-page gap-8 px-4 py-section sm:px-6 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
-        <div>
-          <Eyebrow>Request Quality</Eyebrow>
-          <h2 className="mt-3 font-display text-title font-semibold">
-            {includeTitle}
-          </h2>
-          <p className="mt-3 max-w-prose text-lead text-muted-foreground">
-            {includeDescription}
-          </p>
-        </div>
+          <div className="relative z-10 hidden lg:block">
+            <div className="rounded-md border border-border bg-card">
+              <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3.5">
+                <p className="text-xs font-semibold text-brand">
+                  Example reviewed offer
+                </p>
+                <Badge variant="outline">Reviewed</Badge>
+              </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          {includeItems.map((item) => (
-            <div
-              key={item.title}
-              className="rounded-card border border-border bg-card p-4 shadow-sm"
-            >
-              <span className="grid size-10 place-items-center rounded-lg bg-muted text-muted-foreground">
-                <item.icon className="size-5" aria-hidden="true" />
-              </span>
-              <h3 className="mt-4 font-semibold">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {item.body}
-              </p>
+              <div className="px-5 py-4">
+                <p className="font-semibold">{example.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {example.detail}
+                </p>
+
+                <div className="mt-5 space-y-4">
+                  <div>
+                    <div className="flex items-baseline justify-between gap-4 text-sm">
+                      <span className="text-muted-foreground">
+                        Seller quote
+                      </span>
+                      <Money className="text-muted-foreground line-through">
+                        {formatMoney(example.sellerAsk)}
+                      </Money>
+                    </div>
+                    <div
+                      className="mt-1.5 h-2 rounded-pill bg-muted"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-baseline justify-between gap-4">
+                      <span className="text-sm font-medium">After review</span>
+                      <Money className="text-metric font-semibold text-brand">
+                        {formatMoney(example.reviewed)}
+                      </Money>
+                    </div>
+                    <div
+                      className="mt-1.5 h-2 rounded-pill bg-brand"
+                      style={{ width: `${reviewedBarWidth}%` }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-border px-5 py-3.5">
+                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand">
+                  <TrendingDown className="size-3.5" aria-hidden="true" />
+                  {formatMoney(exampleSaved)} below the asking price
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {example.note}
+                </p>
+              </div>
             </div>
-          ))}
+          </div>
         </div>
       </section>
 
-      <section className="border-y border-border bg-muted/50">
-        <div className="mx-auto max-w-page px-4 py-section sm:px-6">
+      <PlatformActivity />
+
+      {/* ── Request quality: hairline cells, no cards. ── */}
+      <section className="border-b border-border bg-card">
+        <div className="mx-auto max-w-page px-4 py-10 sm:px-6 sm:py-12">
           <div className="max-w-2xl">
-            <Eyebrow>How It Works</Eyebrow>
-            <h2 className="mt-3 font-display text-title font-semibold">
+            <Eyebrow>Request quality</Eyebrow>
+            <h2 className="mt-2 font-display text-title font-semibold">
+              {includeTitle}
+            </h2>
+            <p className="mt-3 max-w-prose text-lead text-muted-foreground">
+              {includeDescription}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3">
+            {includeItems.map((item) => (
+              <div key={item.title} className="bg-card p-5">
+                <item.icon
+                  className="size-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <h3 className="mt-3 font-semibold">{item.title}</h3>
+                <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+                  {item.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Flow: numbered hairline cells on the grey page. ── */}
+      <section className="border-b border-border">
+        <div className="mx-auto max-w-page px-4 py-10 sm:px-6 sm:py-12">
+          <div className="max-w-2xl">
+            <Eyebrow>How it works</Eyebrow>
+            <h2 className="mt-2 font-display text-title font-semibold">
               One request, one reviewed decision path.
             </h2>
           </div>
 
-          <ol className="mt-8 grid gap-3 md:grid-cols-3">
+          <ol className="mt-8 grid gap-px overflow-hidden rounded-md border border-border bg-border md:grid-cols-3">
             {FLOW.map((step, index) => (
-              <li
-                key={step.title}
-                className="rounded-card border border-border bg-card p-4 shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-                    <step.icon className="size-4" aria-hidden="true" />
+              <li key={step.title} className="bg-card p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-sm font-semibold text-brand">
+                    {String(index + 1).padStart(2, "0")}
                   </span>
-                  <span className="text-xs font-semibold text-brand">
-                    Step {index + 1}
-                  </span>
+                  <step.icon
+                    className="size-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 </div>
-                <h3 className="mt-4 font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                <h3 className="mt-3 font-semibold">{step.title}</h3>
+                <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
                   {step.body}
                 </p>
               </li>
@@ -189,56 +268,53 @@ export function PublicRequestTypePage({
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-page gap-4 px-4 py-section sm:px-6 lg:grid-cols-2">
-        <div className="rounded-card border border-border bg-card p-5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-5 text-brand" aria-hidden="true" />
-            <h2 className="font-display text-title font-semibold">
+      {/* ── Fit: two plain columns, hairline rows. ── */}
+      <section className="border-b border-border bg-card">
+        <div className="mx-auto grid max-w-page gap-10 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-2">
+          <div>
+            <h2 className="flex items-center gap-2 font-display text-title font-semibold">
+              <CheckCircle2 className="size-5 text-brand" aria-hidden="true" />
               Strong fit
             </h2>
+            <ul className="mt-5 divide-y divide-border border-y border-border text-sm">
+              {bestFor.map((item) => (
+                <li key={item} className="py-3 text-muted-foreground">
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="mt-5 grid gap-3 text-sm text-muted-foreground">
-            {bestFor.map((item) => (
-              <li key={item} className="flex gap-2.5">
-                <CheckCircle2
-                  className="mt-0.5 size-4 shrink-0 text-brand"
-                  aria-hidden="true"
-                />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
 
-        <div className="rounded-card border border-border bg-card p-5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <XCircle className="size-5 text-muted-foreground" aria-hidden="true" />
-            <h2 className="font-display text-title font-semibold">
+          <div>
+            <h2 className="flex items-center gap-2 font-display text-title font-semibold">
+              <XCircle
+                className="size-5 text-muted-foreground"
+                aria-hidden="true"
+              />
               Not built for yet
             </h2>
+            <ul className="mt-5 divide-y divide-border border-y border-border text-sm">
+              {notFor.map((item) => (
+                <li key={item} className="py-3 text-muted-foreground">
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="mt-5 grid gap-3 text-sm text-muted-foreground">
-            {notFor.map((item) => (
-              <li key={item} className="flex gap-2.5">
-                <XCircle
-                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 
-      <section className="border-t border-border bg-card">
+      {/* ── Seller acquisition: solid dark band. ── */}
+      <section className="bg-primary text-primary-foreground">
         <div className="mx-auto flex max-w-page flex-col gap-4 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl">
-            <Eyebrow>For Shops</Eyebrow>
+            <p className="text-eyebrow font-semibold uppercase text-primary-foreground/70">
+              For shops
+            </p>
             <h2 className="mt-2 font-display text-title font-semibold">
               Quote buyers who already wrote the brief.
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-primary-foreground/80">
               Sellers respond to open requests and track each offer through
               review, approval, decline, or acceptance.
             </p>
@@ -246,7 +322,7 @@ export function PublicRequestTypePage({
           <Link
             href="/register?role=SELLER"
             className={buttonVariants({
-              variant: "outline",
+              variant: "secondary",
               size: "lg",
               className: "w-full md:w-auto",
             })}

@@ -55,7 +55,7 @@ export function AdminSidebar({ counts }: { counts: NavCounts }) {
   const isActive = useIsActive();
 
   return (
-    <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-60 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
+    <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
       <nav aria-label="Admin sections" className="flex h-full flex-col gap-1 p-3">
         <p className="px-3 pt-2 pb-1 text-eyebrow font-semibold text-muted-foreground uppercase">
           Control room
@@ -120,7 +120,7 @@ export function AdminTabs({ counts }: { counts: NavCounts }) {
   return (
     <nav
       aria-label="Admin sections"
-      className="sticky top-16 z-30 flex gap-1 overflow-x-auto border-b border-border bg-background/95 px-4 py-2 backdrop-blur-xl lg:hidden"
+      className="sticky top-14 z-30 flex gap-1 overflow-x-auto border-b border-border bg-card/95 px-4 py-2 backdrop-blur-xl lg:hidden"
     >
       {ITEMS.map((item) => {
         const active = isActive(item.href);

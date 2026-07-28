@@ -381,8 +381,33 @@ Production rules:
 - Add deployment-backed environment documentation.
 - Replace static landing metrics with real aggregates or remove them.
 
-## Acceptance Criteria for Future UI Work
+## UI Elevation Pass (July 2026)
 
+Decisions that are now durable product rules:
+
+- Public metrics are real or absent. `src/lib/platform-stats.ts` computes
+  requests posted, prices reviewed, and ETB saved by mediation from live rows,
+  cached for one hour. `src/components/PlatformActivity.tsx` renders the band
+  on `/`, `/products`, and `/services` and renders nothing when the marketplace
+  is empty. Zero is never shown as a trust signal.
+- Reviewed-price comparison has one visual language: seller quote as a muted
+  bar at full width, reviewed price as a brand bar at its proportional width,
+  plus a savings chip. It appears in the landing hero, the type-page heroes,
+  and `BuyerOfferCard`. Reuse it wherever a reviewed price is shown.
+- Scroll-reveal motion lives in `src/components/Reveal.tsx`. It wraps public
+  storytelling sections only — dashboards stay motion-free because operators
+  re-read the same screen all day. Content renders fully in server HTML;
+  motion is an enhancement and collapses under reduced motion.
+- Queue age is a first-class signal. `src/lib/time.ts` (`formatPostedAge`,
+  `ageInDays`) renders "today / yesterday / N days ago" with the calendar date
+  in a `title` attribute. Seller and buyer request cards show posted age; the
+  admin review queue and overview show waiting age with a warning tone past
+  two days. Components never call `Date.now()` inline (react-hooks/purity) —
+  age math belongs in `src/lib/time.ts`.
+- Seller queue cards keep compact tiles; hover now lifts elevation in addition
+  to the border change.
+
+## Acceptance Criteria for Future UI Work
 - The page has one dominant job and the route does not switch jobs when the user
   scrolls.
 - The first viewport makes the next useful action obvious before secondary

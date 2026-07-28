@@ -32,6 +32,16 @@ export function BuyerOfferCard({ offer }: BuyerOfferCardProps) {
   const askedPrice = formatMoney(offer.price);
   const wasAdjusted = offer.adminPrice !== null;
   const saving = savingOn(offer.price, offer.adminPrice);
+  const reviewedShare = wasAdjusted
+    ? Math.min(
+        100,
+        Math.round(
+          (Number(offer.adminPrice?.toString()) /
+            Number(offer.price.toString())) *
+            100
+        )
+      )
+    : null;
 
   return (
     <article className="grid gap-4 border-t border-border px-5 py-5 first:border-t-0 md:grid-cols-[minmax(0,1fr)_minmax(12rem,auto)]">
@@ -83,6 +93,16 @@ export function BuyerOfferCard({ offer }: BuyerOfferCardProps) {
             </p>
           )}
         </div>
+
+        {reviewedShare !== null && (
+          <div className="w-full space-y-1.5" aria-hidden="true">
+            <div className="h-1.5 rounded-pill bg-border" />
+            <div
+              className="h-1.5 rounded-pill bg-brand"
+              style={{ width: `${reviewedShare}%` }}
+            />
+          </div>
+        )}
 
         {saving > 0 && (
           <p className="inline-flex w-fit items-center gap-1 rounded-pill bg-brand-muted px-2.5 py-1 text-xs font-semibold text-brand">

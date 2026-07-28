@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Clock,
-  PackageOpen,
-  ShoppingCart,
-  Users,
-  ArrowRight,
-  TrendingDown,
-} from "lucide-react";
+import { ArrowRight, Clock, TrendingDown } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
+import { formatPostedAge } from "@/lib/time";
 import { OPEN_ORDER_STATUSES } from "@/lib/admin";
-import { StatGrid } from "@/components/StatCard";
 import { Container } from "@/components/Container";
 import { PageHeader, Money } from "@/components/Typography";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -92,27 +85,40 @@ export default async function AdminOverviewPage() {
         }
       />
 
-      <StatGrid
-        className="grid-cols-2 lg:grid-cols-4"
-        stats={[
-          {
-            label: "Awaiting review",
-            value: pending,
-            icon: Clock,
-            href: "/admin/queue",
-            tone: pending ? "warning" : "neutral",
-          },
-          {
-            label: "Active orders",
-            value: activeOrders,
-            icon: ShoppingCart,
-            href: "/admin/orders",
-            tone: activeOrders ? "success" : "neutral",
-          },
-          { label: "Open requests", value: openRequests, icon: PackageOpen },
-          { label: "People", value: totalUsers, icon: Users },
-        ]}
-      />
+      {/* The state of the business as one hairline strip. The first two
+          cells are routes because they are jobs; the second two are context. */}
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border lg:grid-cols-4">
+        <Link href="/admin/queue" className="group bg-card p-4 transition-colors hover:bg-accent/50">
+          <dt className="text-xs text-muted-foreground">Awaiting review</dt>
+          <dd
+            className={
+              pending > 0
+                ? "mt-1 text-xl font-semibold tabular-nums text-warning-foreground"
+                : "mt-1 text-xl font-semibold tabular-nums"
+            }
+          >
+            {pending}
+          </dd>
+        </Link>
+        <Link href="/admin/orders" className="group bg-card p-4 transition-colors hover:bg-accent/50">
+          <dt className="text-xs text-muted-foreground">Active orders</dt>
+          <dd className="mt-1 text-xl font-semibold tabular-nums">
+            {activeOrders}
+          </dd>
+        </Link>
+        <div className="bg-card p-4">
+          <dt className="text-xs text-muted-foreground">Open requests</dt>
+          <dd className="mt-1 text-xl font-semibold tabular-nums">
+            {openRequests}
+          </dd>
+        </div>
+        <div className="bg-card p-4">
+          <dt className="text-xs text-muted-foreground">People</dt>
+          <dd className="mt-1 text-xl font-semibold tabular-nums">
+            {totalUsers}
+          </dd>
+        </div>
+      </dl>
 
       <div className="grid gap-8 lg:grid-cols-3">
         <section className="lg:col-span-2">
@@ -138,7 +144,7 @@ export default async function AdminOverviewPage() {
               description="Offers appear here the moment a shop sends a price."
             />
           ) : (
-            <ul className="divide-y divide-border overflow-hidden rounded-card border border-border bg-card">
+            <ul className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
               {oldest.map((offer) => (
                 <li key={offer.id}>
                   <Link
@@ -149,8 +155,10 @@ export default async function AdminOverviewPage() {
                       <p className="truncate font-medium">
                         {offer.request.title}
                       </p>
-                      <div className="mt-1 text-xs text-muted-foreground">
+                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                         <Identity name={offer.seller.name} />
+                        <span aria-hidden="true">·</span>
+                        <span>waiting {formatPostedAge(offer.createdAt)}</span>
                       </div>
                     </div>
                     <Money className="shrink-0 font-semibold">
@@ -172,7 +180,7 @@ export default async function AdminOverviewPage() {
             title="Mediation to date"
             description="What review has taken off accepted prices."
           />
-          <div className="rounded-card border border-brand-border/50 bg-card p-5 shadow-sm">
+          <div className="rounded-md border border-border bg-card p-5">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <TrendingDown className="size-4 text-brand" aria-hidden="true" />
               Saved for buyers

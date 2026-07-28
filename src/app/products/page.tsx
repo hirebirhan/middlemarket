@@ -46,6 +46,13 @@ export default function ProductsPage() {
         "In-app payment, escrow, or checkout flows.",
         "Requests with many unrelated product lines in one brief.",
       ]}
+      example={{
+        title: "iPhone 15 128GB",
+        detail: "New, sealed · 1 unit · Bole area",
+        sellerAsk: 62000,
+        reviewed: 54500,
+        note: "Adjusted to the top of the reviewed price band for this model.",
+      }}
     />
   );
 }

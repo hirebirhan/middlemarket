@@ -17,7 +17,7 @@ export default function PublicNav() {
   return (
     <div
       aria-label="Public sections"
-      className="hidden items-center rounded-pill border border-border bg-muted/60 p-0.5 md:flex"
+      className="hidden items-center rounded-md border border-border bg-muted/60 p-0.5 md:flex"
       role="group"
     >
       {PUBLIC_LINKS.map((link) => {
